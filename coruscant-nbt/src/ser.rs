@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::consts;
+// use crate::consts;
 use crate::error::{Error, ErrorCode, Result};
 use serde::ser::{self, Impossible, Serialize};
 use byteorder::{WriteBytesExt, BigEndian}; // <- SPICY mojang
@@ -47,22 +47,18 @@ where
     }
 
     fn serialize_i8(self, value: i8) -> Result<()> {
-        self.writer.write_u8(consts::TYPE_ID_BYTE).map_err(Error::io)?;
         self.writer.write_i8(value).map_err(Error::io)
     }
 
     fn serialize_i16(self, value: i16) -> Result<()> {
-        self.writer.write_u8(consts::TYPE_ID_SHORT).map_err(Error::io)?;
         self.writer.write_i16::<BigEndian>(value).map_err(Error::io)
     }
 
     fn serialize_i32(self, value: i32) -> Result<()> {
-        self.writer.write_u8(consts::TYPE_ID_INT).map_err(Error::io)?;
         self.writer.write_i32::<BigEndian>(value).map_err(Error::io)
     }
 
     fn serialize_i64(self, value: i64) -> Result<()> {
-        self.writer.write_u8(consts::TYPE_ID_LONG).map_err(Error::io)?;
         self.writer.write_i64::<BigEndian>(value).map_err(Error::io)
     }
 
@@ -91,12 +87,10 @@ where
     }
 
     fn serialize_f32(self, value: f32) -> Result<()> {
-        self.writer.write_u8(consts::TYPE_ID_FLOAT).map_err(Error::io)?;
         self.writer.write_f32::<BigEndian>(value).map_err(Error::io)
     }
 
     fn serialize_f64(self, value: f64) -> Result<()> {
-        self.writer.write_u8(consts::TYPE_ID_DOUBLE).map_err(Error::io)?;
         self.writer.write_f64::<BigEndian>(value).map_err(Error::io)
     }
 
@@ -105,7 +99,6 @@ where
     }
 
     fn serialize_str(self, s: &str) -> Result<()> {
-        self.writer.write_u8(consts::TYPE_ID_STRING).map_err(Error::io)?;
         if s.len() > i16::max_value() as usize {
             return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0))
         }
@@ -201,11 +194,12 @@ where
 
     fn serialize_struct(
         self,
-        name: &'static str,
-        len: usize,
+        _name: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeStruct> {
-        self.serialize_str(name)?;
-        self.serialize_map(Some(len))
+        // self.serialize_str(name)?;
+        // self.serialize_map(Some(len))
+        unimplemented!()
     }
 
     fn serialize_struct_variant(
@@ -258,3 +252,20 @@ impl<'a, W> ser::SerializeStruct for &'a mut Serializer<W> {
     }
 }
 
+pub fn to_writer<W, T: ?Sized>(writer: W, value: &T) -> Result<()> 
+where 
+    W: io::Write,
+    T: Serialize,
+{
+    let mut ser = Serializer::new(writer);
+    value.serialize(&mut ser)
+}
+
+pub fn to_vec<T: ?Sized>(value: &T) -> Result<Vec<u8>> 
+where 
+    T: Serialize
+{
+    let mut writer = Vec::with_capacity(128);
+    to_writer(&mut writer, value)?;
+    Ok(writer)
+}

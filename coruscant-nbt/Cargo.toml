@@ -1,0 +1,10 @@
+[package]
+name = "coruscant-nbt"
+version = "0.1.0"
+authors = ["luojia65 <me@luojia.cc>"]
+edition = "2018"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+# todo: derive only for testing?
+byteorder = "1.3"

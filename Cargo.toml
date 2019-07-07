@@ -1,9 +1,4 @@
-[package]
-name = "coruscant"
-description = "Centralized, massive and prosperous Minecraft server software library"
-authors = ["luojia65 <me@luojia.cc>"]
-license = "MIT"
-version = "0.0.0"
-edition = "2018"
-
-[dependencies]
+[workspace]
+members = [
+    "coruscant-nbt"
+]

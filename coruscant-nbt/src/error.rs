@@ -21,6 +21,7 @@ pub(crate) enum ErrorCode {
     Io(io::Error),
     UnsupportedType,
     InvalidStringLength,
+    KeyMustBeAString,
 }
 
 impl Error {
@@ -70,6 +71,7 @@ impl fmt::Display for ErrorCode {
             ErrorCode::Io(ref err) => fmt::Display::fmt(err, f),
             ErrorCode::UnsupportedType => f.write_str("unsupported type"),
             ErrorCode::InvalidStringLength => f.write_str("invalid string length"),
+            ErrorCode::KeyMustBeAString => f.write_str("key must be a string"),
             // exhaustive
         }
     }

@@ -3,7 +3,6 @@ use core::fmt;
 use serde::{Serialize, Deserialize};
 use serde::ser::Serializer;
 use serde::de::{self, Deserializer, Error, Unexpected};
-// use coruscant_nbt::to_vec;
 
 #[derive(Serialize, Debug)]
 pub struct PlayerDat {
@@ -11,6 +10,7 @@ pub struct PlayerDat {
     data_version: i32,
     #[serde(rename = "Dimension")]
     dimension: Dimension,
+    abilities: Abilities,
 }
 
 #[derive(Debug)]
@@ -65,10 +65,35 @@ impl<'de> Deserialize<'de> for Dimension {
     }
 }
 
+#[derive(Serialize, Debug)]
+pub struct Abilities {
+    #[serde(rename = "walkSpeed")]
+    walk_speed: f32,
+    #[serde(rename = "flySpeed")]
+    fly_speed: f32,
+    #[serde(rename = "mayfly")]
+    may_fly: bool,
+    flying: bool,
+    invulnerable: bool,
+    #[serde(rename = "mayBuild")]
+    may_build: bool,
+    #[serde(rename = "instabuild")]
+    instant_build: bool,
+}
+
 fn main() -> coruscant_nbt::Result<()> {
     let dat = PlayerDat {
         data_version: 19133,
         dimension: Dimension::Nether,
+        abilities: Abilities {
+            walk_speed: 0.1,
+            fly_speed: 0.05,
+            may_fly: false,
+            flying: false,
+            invulnerable: false,
+            may_build: true,
+            instant_build: false,
+        }
     };
     let v = coruscant_nbt::to_vec(&dat)?;
     println!("{:?}", v);

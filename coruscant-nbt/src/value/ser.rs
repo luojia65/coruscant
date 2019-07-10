@@ -1,6 +1,7 @@
 use crate::error::{Error, ErrorCode};
-use super::Value;
-use serde::ser::{self, Impossible};
+use crate::map::Map;
+use super::{Value, to_value};
+use serde::ser::{self, Serialize, Impossible};
 
 impl ser::Serialize for Value {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -34,8 +35,8 @@ impl ser::Serializer for Serializer {
     type SerializeTuple = Impossible<Value, Error>;
     type SerializeTupleStruct = Impossible<Value, Error>;
     type SerializeTupleVariant = Impossible<Value, Error>;
-    type SerializeMap = Impossible<Value, Error>;
-    type SerializeStruct = Impossible<Value, Error>;
+    type SerializeMap = SerializeCompound;
+    type SerializeStruct = SerializeCompound;
     type SerializeStructVariant = Impossible<Value, Error>;
 
     fn serialize_bool(self, value: bool) -> Result<Self::Ok, Self::Error> {
@@ -189,7 +190,9 @@ impl ser::Serializer for Serializer {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        unimplemented!()
+        Ok(SerializeCompound { 
+            map: Map::new() 
+        })
     }
 
     fn serialize_struct_variant(
@@ -206,3 +209,51 @@ impl ser::Serializer for Serializer {
 // pub struct SerializeArray {
 //     // array: Vec<Value>
 // }
+
+pub struct SerializeCompound {
+    map: Map<String, Value>,
+}
+
+impl ser::SerializeMap for SerializeCompound {
+    type Ok = Value;
+    type Error = Error;
+
+    fn serialize_key<T: ?Sized>(&mut self, _key: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize
+    {
+        unimplemented!()
+    }
+
+    fn serialize_value<T: ?Sized>(&mut self, _value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize 
+    {
+        unimplemented!()
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        unimplemented!()
+    }
+}
+
+impl ser::SerializeStruct for SerializeCompound {
+    type Ok = Value;
+    type Error = Error;
+
+    fn serialize_field<T: ?Sized>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<(), Self::Error>
+    where
+        T: Serialize
+    {
+        self.map.insert(String::from(key), to_value(value)?);
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Compound(self.map))
+    }
+}

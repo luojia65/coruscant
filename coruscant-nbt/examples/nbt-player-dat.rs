@@ -10,6 +10,7 @@ pub struct PlayerDat {
     data_version: i32,
     #[serde(rename = "Dimension")]
     dimension: Dimension,
+    #[serde(rename = "abilities")]
     abilities: Abilities,
 }
 
@@ -73,12 +74,34 @@ pub struct Abilities {
     fly_speed: f32,
     #[serde(rename = "mayfly")]
     may_fly: bool,
+    #[serde(rename = "flying")]
     flying: bool,
+    #[serde(rename = "invulnerable")]
     invulnerable: bool,
     #[serde(rename = "mayBuild")]
     may_build: bool,
     #[serde(rename = "instabuild")]
     instant_build: bool,
+}
+
+#[derive(Serialize, Debug)]
+pub struct ItemStructure {
+    #[serde(rename = "Count")]
+    count: i8,
+    #[serde(rename = "Slot")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    slot_id: Option<i8>,
+    #[serde(rename = "id")]
+    item_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)] 
+    #[serde(rename = "tag")]
+    item_tag: Option<ItemTag>,
+}
+
+#[derive(Serialize, Debug)]
+pub enum ItemTag {
+
 }
 
 fn main() -> coruscant_nbt::Result<()> {
@@ -93,7 +116,7 @@ fn main() -> coruscant_nbt::Result<()> {
             invulnerable: false,
             may_build: true,
             instant_build: false,
-        }
+        },
     };
     let v = coruscant_nbt::to_vec(&dat)?;
     println!("{:?}", v);

@@ -118,7 +118,7 @@ fn main() -> coruscant_nbt::Result<()> {
             instant_build: false,
         },
     };
-    let v = coruscant_nbt::to_vec(&dat)?;
-    println!("{:?}", v);
+    let s = coruscant_nbt::to_string_transcript(("Player", &dat))?;
+    println!("{}", s);
     Ok(())
 }

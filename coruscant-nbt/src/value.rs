@@ -1,7 +1,6 @@
 mod ser;
 
 use core::fmt;
-use crate::consts;
 use crate::error::Result;
 use crate::map::Map;
 
@@ -19,25 +18,6 @@ pub enum Value {
     Compound(Map<String, Value>),
     IntArray(Vec<i32>),
     LongArray(Vec<i64>),
-}
-
-impl Value {
-    pub(crate) fn type_id(&self) -> u8 {
-        match *self {
-            Value::Byte(_) => consts::TYPE_ID_BYTE,
-            Value::Short(_) => consts::TYPE_ID_SHORT,
-            Value::Int(_) => consts::TYPE_ID_INT,
-            Value::Long(_) => consts::TYPE_ID_LONG,
-            Value::Float(_) => consts::TYPE_ID_FLOAT,
-            Value::Double(_) => consts::TYPE_ID_DOUBLE,
-            Value::ByteArray(_) => consts::TYPE_ID_BYTE_ARRAY,
-            Value::String(_) => consts::TYPE_ID_STRING,
-            Value::List(_) => consts::TYPE_ID_LIST,
-            Value::Compound(_) => consts::TYPE_ID_COMPOUND,
-            Value::IntArray(_) => consts::TYPE_ID_INT_ARRAY,
-            Value::LongArray(_) => consts::TYPE_ID_LONG_ARRAY,
-        }
-    }
 }
 
 impl fmt::Debug for Value {

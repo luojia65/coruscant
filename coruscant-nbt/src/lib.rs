@@ -1,6 +1,6 @@
 pub use error::{Error, Result};
 pub use ser::{to_writer, to_vec, to_string_transcript};
-pub use value::{to_value};
+pub use value::{Value, to_value};
 pub use root::Root;
 
 pub mod error;

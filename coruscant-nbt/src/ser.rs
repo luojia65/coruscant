@@ -1,10 +1,9 @@
-/// Test case taken from https://wiki.vg/NBT
-
 use std::io;
 
 use crate::consts;
 use crate::error::{Error, ErrorCode, Result};
 use crate::root;
+use std::borrow::Cow;
 use serde::ser::{self, Impossible, Serialize};
 use byteorder::{WriteBytesExt, BigEndian}; // <- SPICY mojang
 
@@ -12,7 +11,7 @@ use byteorder::{WriteBytesExt, BigEndian}; // <- SPICY mojang
 pub struct Serializer<'a, W, F> {
     writer: W,
     formatter: F,
-    next_name: &'a str,
+    next_name: Cow<'a, str>,
 }
 
 impl<'a, W, F> Serializer<'a, W, F> {
@@ -23,7 +22,7 @@ impl<'a, W, F> Serializer<'a, W, F> {
 
     #[inline]
     fn new(writer: W, formatter: F, root_name: &'a str) -> Self {
-        Serializer { writer, formatter, next_name: root_name }
+        Serializer { writer, formatter, next_name: root_name.into() }
     }
 }
 
@@ -61,6 +60,12 @@ where
     type SerializeMap = SerializeCompound<'a, 'b, W, F>;
     type SerializeStruct = SerializeCompound<'a, 'b, W, F>;
     type SerializeStructVariant = Impossible<(), Error>;
+
+    return_expr_for_serialized_types! {
+        Err(unsupported_type()); 
+        i128 u8 u16 u32 u64 u128 
+        unit
+    }
 
     #[inline]
     fn serialize_bool(self, value: bool) -> Result<()> {
@@ -105,36 +110,6 @@ where
             self.next_name.as_bytes(),
             value
         ).map_err(Error::io)
-    }
-
-    #[inline]
-    fn serialize_i128(self, _value: i128) -> Result<()> {
-        Err(unsupported_type())
-    }
-
-    #[inline]
-    fn serialize_u8(self, _value: u8) -> Result<()> {
-        Err(unsupported_type())
-    }
-
-    #[inline]
-    fn serialize_u16(self, _value: u16) -> Result<()> {
-        Err(unsupported_type())
-    }
-
-    #[inline]
-    fn serialize_u32(self, _value: u32) -> Result<()> {
-        Err(unsupported_type())
-    }
-
-    #[inline]
-    fn serialize_u64(self, _value: u64) -> Result<()> {
-        Err(unsupported_type())
-    }
-
-    #[inline]
-    fn serialize_u128(self, _value: u128) -> Result<()> {
-        Err(unsupported_type())
     }
 
     #[inline]
@@ -192,25 +167,26 @@ where
 
     #[inline]
     fn serialize_none(self) -> Result<()> {
-        Err(unsupported_type())
+        Ok(())
     }
 
     #[inline]
-    fn serialize_some<T: ?Sized>(self, _value: &T) -> Result<()>
+    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<()>
     where
         T: ser::Serialize,
     {
-        Err(unsupported_type())
+        value.serialize(self)
     }
 
-    #[inline]
-    fn serialize_unit(self) -> Result<()> {
-        Err(unsupported_type())
-    }
-
+    /// Regard unit structs as an empty NBT compound.
     #[inline]
     fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
-        unimplemented!()
+        self.formatter.write_compound_tag(
+            &mut self.writer, 
+            self.next_name.len() as i16, 
+            self.next_name.as_bytes()
+        ).map_err(Error::io)?;
+        self.formatter.write_end_tag(&mut self.writer).map_err(Error::io)
     }
 
     #[inline]
@@ -281,7 +257,14 @@ where
 
     #[inline]
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        unimplemented!()
+        self.formatter.write_compound_tag(
+            &mut self.writer, 
+            self.next_name.len() as i16, 
+            self.next_name.as_bytes()
+        ).map_err(Error::io)?;
+        Ok(SerializeCompound {
+            ser: self,
+        })
     }
 
     #[inline]
@@ -325,31 +308,24 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_key<T>(&mut self, _key: &T) -> Result<()>
+    fn serialize_key<T>(&mut self, key: &T) -> Result<()>
     where
         T: ?Sized + Serialize
     {
-        // let key = to_value(key)?;
-        // self.ser.formatter.write_type_id(&mut self.ser.writer, &key).map_err(Error::io)?;
-        // key.serialize(MapKeySerializer { ser: self.ser })
-        unimplemented!()
+        key.serialize(MapKeySerializer { ser: self.ser })
     }
 
     #[inline]
-    fn serialize_value<T>(&mut self, _value: &T) -> Result<()>
+    fn serialize_value<T>(&mut self, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize
     {
-        // let value_conv = to_value(value)?;
-        // self.ser.formatter.write_type_id(&mut self.ser.writer, &value_conv).map_err(Error::io)?;
-        // value.serialize(&mut *self.ser)
-        unimplemented!()
+        value.serialize(&mut *self.ser)
     }
 
     #[inline]
     fn end(self) -> Result<()> {
-        // self.ser.formatter.end_compound(&mut self.ser.writer).map_err(Error::io)
-        unimplemented!()
+        self.ser.formatter.write_end_tag(&mut self.ser.writer).map_err(Error::io)
     }
 }
 
@@ -366,7 +342,7 @@ where
     where   
         T: ?Sized + Serialize 
     {   
-        self.ser.next_name = key;
+        self.ser.next_name = key.into();
         value.serialize(&mut *self.ser)?;
         Ok(())
     }
@@ -374,6 +350,67 @@ where
     #[inline]
     fn end(self) -> Result<()> {
         self.ser.formatter.write_end_tag(&mut self.ser.writer).map_err(Error::io)
+    }
+}
+
+pub struct MapKeySerializer<'a, 'b, W, F> {
+    ser: &'a mut Serializer<'b, W, F>
+}
+
+#[inline]
+fn key_must_be_a_string() -> Error {
+    Error::syntax(ErrorCode::KeyMustBeAString, 0, 0)
+}
+
+impl<'a, 'b, W, F> ser::Serializer for MapKeySerializer<'a, 'b, W, F> 
+where 
+    W: io::Write,
+    F: Formatter
+{
+
+    type Ok = ();
+    type Error = Error;
+
+    type SerializeSeq = Impossible<(), Error>;
+    type SerializeTuple = Impossible<(), Error>;
+    type SerializeTupleStruct = Impossible<(), Error>;
+    type SerializeTupleVariant = Impossible<(), Error>;
+    type SerializeMap = Impossible<(), Error>;
+    type SerializeStruct = Impossible<(), Error>;
+    type SerializeStructVariant = Impossible<(), Error>;
+
+    return_expr_for_serialized_types! {
+        Err(key_must_be_a_string());
+        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes none some 
+        newtype_variant unit unit_struct seq 
+        tuple tuple_struct tuple_variant struct_variant map struct
+    }
+
+    fn serialize_str(self, value: &str) -> Result<()> {
+        self.ser.next_name = value.to_owned().into();
+        Ok(())
+    }
+
+    #[inline]
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+    ) -> Result<()> {
+        self.serialize_str(variant)
+    }
+
+    #[inline]
+    fn serialize_newtype_struct<T: ?Sized>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<()>
+    where
+        T: ser::Serialize,
+    {
+        value.serialize(self)
     }
 }
 

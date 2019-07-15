@@ -1,17 +1,6 @@
 use coruscant_nbt::{to_string_transcript, Result};
 use serde::Serialize;
-
-// #[derive(Serialize)]
-// struct Wrap<'a> {
-//     inner: &'a str,
-// }
-
-// fn main() -> Result<()> {
-//     let value = Wrap { inner: "Spicy" };
-//     let ans = to_vec(&value)?;
-//     println!("{:?}", ans);
-//     Ok(())
-// }
+use std::collections::HashMap;
 
 #[derive(Serialize)]
 #[serde(rename = "wrap")]
@@ -22,11 +11,14 @@ struct Wrap {
 
 #[derive(Serialize)]
 struct Inner {
-    a: i8
+    map: HashMap<&'static str, f32>,
 }
 
 fn main() -> Result<()> {
-    let value = Wrap { inner: Inner { a: -15 } };
+    let mut map = HashMap::new();
+    map.insert("123", 123.456);
+    map.insert("456", 789.012);
+    let value = Wrap { inner: Inner { map } };
     let ans = to_string_transcript(("Outer", &value))?;
     println!("{}", ans);
     Ok(())

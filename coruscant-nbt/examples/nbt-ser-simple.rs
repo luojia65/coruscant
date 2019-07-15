@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     map.insert("123", 123.456);
     map.insert("456", 789.012);
     let value = Wrap { inner: Inner { map } };
-    let ans = to_string_transcript(("Outer", &value))?;
+    let ans = to_string_transcript(&value)?;
     println!("{}", ans);
     Ok(())
 }

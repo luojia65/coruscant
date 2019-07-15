@@ -12,6 +12,13 @@ pub struct Serializer<'a, W, F> {
     writer: W,
     formatter: F,
     next_name: Cow<'a, str>,
+    state: State,
+}
+
+#[derive(Debug, PartialEq)]
+enum State {
+    Root,
+    Inner,
 }
 
 impl<'a, W, F> Serializer<'a, W, F> {
@@ -22,7 +29,7 @@ impl<'a, W, F> Serializer<'a, W, F> {
 
     #[inline]
     fn new(writer: W, formatter: F, root_name: &'a str) -> Self {
-        Serializer { writer, formatter, next_name: root_name.into() }
+        Serializer { writer, formatter, next_name: root_name.into(), state: State::Root }
     }
 }
 
@@ -270,13 +277,17 @@ where
     #[inline]
     fn serialize_struct(
         self,
-        _name: &'static str,
+        name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct> {
+        let next_name = if self.state == State::Root && self.next_name == "" {
+            self.state = State::Inner;
+            name
+        } else { &self.next_name };
         self.formatter.write_compound_tag(
             &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes()
+            next_name.len() as i16, 
+            next_name.as_bytes()
         ).map_err(Error::io)?;
         Ok(SerializeCompound {
             ser: self,

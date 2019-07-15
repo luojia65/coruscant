@@ -5,6 +5,7 @@ use serde::ser::Serializer;
 use serde::de::{self, Deserializer, Error, Unexpected};
 
 #[derive(Serialize, Debug)]
+#[serde(rename = "Player")]
 pub struct PlayerDat {
     #[serde(rename = "DataVersion")]
     data_version: i32,
@@ -118,7 +119,9 @@ fn main() -> coruscant_nbt::Result<()> {
             instant_build: false,
         },
     };
-    let s = coruscant_nbt::to_string_transcript(("Player", &dat))?;
+    let s = coruscant_nbt::to_string_transcript(&dat)?;
     println!("{}", s);
+    let v = coruscant_nbt::to_vec(&dat)?;
+    println!("{:?}", v);
     Ok(())
 }

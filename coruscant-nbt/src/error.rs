@@ -22,6 +22,8 @@ pub(crate) enum ErrorCode {
     UnsupportedType,
     InvalidStringLength,
     KeyMustBeAString,
+    SequenceSizeUnknown,
+    SequenceDifferentType,
 }
 
 impl Error {
@@ -72,6 +74,8 @@ impl fmt::Display for ErrorCode {
             ErrorCode::UnsupportedType => f.write_str("unsupported type"),
             ErrorCode::InvalidStringLength => f.write_str("invalid string length"),
             ErrorCode::KeyMustBeAString => f.write_str("key must be a string"),
+            ErrorCode::SequenceSizeUnknown => f.write_str("size of sequence is unknown"),
+            ErrorCode::SequenceDifferentType => f.write_str("elements of one sequence do not have the same type")
             // exhaustive
         }
     }

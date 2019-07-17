@@ -19,7 +19,8 @@ pub struct TestStruct {
     double_test: f64,
     #[serde(rename = "stringTest")]
     string_test: &'static str,
-    // list_test
+    #[serde(rename = "listTest (long)")]
+    list_long_test: [i8; 5],
     // list_compound_test
     // byte_array_test
     #[serde(rename = "nested compound test")]
@@ -44,16 +45,17 @@ fn main() -> Result<()> {
             egg: Food { name: "Eggbert", value: 0.5 },
             ham: Food { name: "Hampus", value: 0.75 },
         },
-        int_test: 2147483647,
         byte_test: 127,
-        string_test: "HELLO WORLD THIS IS A TEST STRING!",
-        // list_test
+        short_test: 32767,
+        int_test: 2147483647,
+        long_test: 9223372036854775807,
         double_test: 0.49312871321823148,
         float_test: 0.49823147058486938,
-        long_test: 9223372036854775807,
+        string_test: "HELLO WORLD THIS IS A TEST STRING!",
+        list_long_test: [11, 12, 13, 14, 15],
+        // list_test
         // list_compound_test
         // byte_array_test
-        short_test: 32767,
     };
     println!("{}", to_string_transcript(("Level", &value))?);
     Ok(())

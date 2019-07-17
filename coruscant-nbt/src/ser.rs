@@ -52,6 +52,11 @@ fn unsupported_type() -> Error {
     Error::syntax(ErrorCode::UnsupportedType, 0, 0)
 }
 
+#[inline]
+fn sequence_size_unknown() -> Error {
+    Error::syntax(ErrorCode::SequenceSizeUnknown, 0, 0)
+}
+
 impl<'a, 'b: 'a, W, F> ser::Serializer for &'a mut Serializer<'b, W, F> 
 where  
     W: io::Write,
@@ -60,8 +65,8 @@ where
     type Ok = ();
     type Error = Error;
 
-    type SerializeSeq = Impossible<(), Error>;
-    type SerializeTuple = Impossible<(), Error>;
+    type SerializeSeq = SerializeList<'a, 'b, W, F>;
+    type SerializeTuple = SerializeList<'a, 'b, W, F>;
     type SerializeTupleStruct = Impossible<(), Error>;
     type SerializeTupleVariant = Impossible<(), Error>;
     type SerializeMap = SerializeCompound<'a, 'b, W, F>;
@@ -233,13 +238,23 @@ where
     }
 
     #[inline]
-    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
-        unimplemented!()
+    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
+        if let Some(len) = len {
+            self.serialize_tuple(len)
+        } else {
+            Err(sequence_size_unknown())
+        }
     }
 
     #[inline]
-    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple> {
-        unimplemented!()
+    fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
+        Ok(SerializeList { 
+            ser: ListInnerSerializer { 
+                type_id: 0,
+                len_or_remain: len, 
+                ser: self 
+            } 
+        })
     }
 
     #[inline]
@@ -425,6 +440,147 @@ where
     }
 }
 
+pub struct SerializeList<'a, 'b, W, F> {
+    ser: ListInnerSerializer<'a, 'b, W, F>,
+}
+
+impl<'a, 'b, W, F> ser::SerializeSeq for SerializeList<'a, 'b, W, F>
+where
+    W: io::Write,
+    F: Formatter 
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()> 
+    where 
+        T: serde::Serialize
+    {
+        value.serialize(&mut self.ser)
+    }
+
+    fn end(self) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl<'a, 'b, W, F> ser::SerializeTuple for SerializeList<'a, 'b, W, F>
+where
+    W: io::Write,
+    F: Formatter 
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()> 
+    where 
+        T: serde::Serialize
+    {
+        value.serialize(&mut self.ser)
+    }
+
+    fn end(self) -> Result<()> {
+        Ok(())
+    }
+}
+
+pub struct ListInnerSerializer<'a, 'b, W, F> {
+    type_id: u8,
+    len_or_remain: usize,
+    ser: &'a mut Serializer<'b, W, F>
+}
+
+#[inline]
+fn sequence_different_type() -> Error {
+    Error::syntax(ErrorCode::SequenceDifferentType, 0, 0)
+}
+
+impl<W, F> ListInnerSerializer<'_, '_, W, F>
+where
+    W: io::Write,
+    F: Formatter
+{
+    fn serialize_head(&mut self, type_id: u8) -> Result<()> {
+        if self.type_id != 0 && type_id != self.type_id {
+            return Err(sequence_different_type())
+        }
+        if type_id == self.type_id {
+            return Ok(())
+        }
+        self.type_id = type_id;
+        self.ser.formatter.write_list_tag(
+            &mut self.ser.writer, 
+            type_id,
+            self.len_or_remain as i16,
+            self.ser.next_name.len() as i16, 
+            self.ser.next_name.as_bytes()
+        ).map_err(Error::io)
+    }
+
+    fn serialize_close_list(&mut self) -> Result<()> {
+        if self.len_or_remain > 1 {
+            self.len_or_remain -= 1;
+        } else {
+            self.ser.formatter.close_list(&mut self.ser.writer).map_err(Error::io)?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a, 'b, W, F> ser::Serializer for &'_ mut ListInnerSerializer<'a, 'b, W, F> 
+where 
+    W: io::Write,
+    F: Formatter
+{
+
+    type Ok = ();
+    type Error = Error;
+
+    type SerializeSeq = Impossible<(), Error>;
+    type SerializeTuple = Impossible<(), Error>;
+    type SerializeTupleStruct = Impossible<(), Error>;
+    type SerializeTupleVariant = Impossible<(), Error>;
+    type SerializeMap = Impossible<(), Error>;
+    type SerializeStruct = Impossible<(), Error>;
+    type SerializeStructVariant = Impossible<(), Error>;
+
+    return_expr_for_serialized_types! {
+        Err(unimplemented!());
+        bool i16 i32 i64 u8 u16 u32 u64 f32 f64 char str bytes none some 
+        newtype_variant unit unit_struct seq 
+        tuple tuple_struct tuple_variant struct_variant map struct
+    }
+
+    #[inline]
+    fn serialize_i8(self, value: i8) -> Result<()> {
+        self.serialize_head(consts::TYPE_ID_BYTE)?;
+        self.ser.formatter.write_byte_inner(&mut self.ser.writer, value).map_err(Error::io)?;
+        self.serialize_close_list()
+    }
+
+    #[inline]
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+    ) -> Result<()> {
+        self.serialize_str(variant)
+    }
+
+    #[inline]
+    fn serialize_newtype_struct<T: ?Sized>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<()>
+    where
+        T: ser::Serialize,
+    {
+        value.serialize(self)
+    }
+}
+
 pub trait Formatter {
     #[inline]
     fn write_compound_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8]) -> io::Result<()>
@@ -525,6 +681,39 @@ pub trait Formatter {
         w.write_i16::<BigEndian>(string_len)?;
         w.write_all(string_bytes)
     }
+
+    #[inline]
+    fn write_list_tag<W: ?Sized>(
+        &mut self, w: &mut W, type_id: u8, len: i16,
+        name_len: i16, name_bytes: &[u8], 
+    ) -> io::Result<()>
+    where
+        W: io::Write
+    {
+        w.write_u8(consts::TYPE_ID_LIST)?;
+        w.write_i16::<BigEndian>(name_len)?;
+        w.write_all(name_bytes)?;
+        w.write_u8(type_id)?;
+        w.write_i16::<BigEndian>(len)
+    }
+
+    #[inline]
+    fn close_list<W: ?Sized>(&mut self, _w: &mut W) -> io::Result<()>
+    where
+        W: io::Write
+    {
+        Ok(())
+    }
+
+    #[inline]
+    fn write_byte_inner<W>(&mut self, w: &mut W, value: i8) -> io::Result<()>
+    where  
+        W: io::Write
+    {
+        w.write_i8(value)
+    }
+
+
 }
 
 pub struct BinaryFormatter;
@@ -654,6 +843,41 @@ impl Formatter for TranscriptFormatter<'_> {
         let string = String::from_utf8_lossy(string_bytes);
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "String '{}' {}", name, string)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn write_list_tag<W: ?Sized>(
+        &mut self, w: &mut W, type_id: u8, len: i16,
+        name_len: i16, name_bytes: &[u8], 
+    ) -> io::Result<()>
+    where
+        W: io::Write
+    {
+        let _ = name_len;
+        let name = String::from_utf8_lossy(name_bytes);
+        indent(w, self.current_indent, self.indent)?;
+        writeln!(w, "List '{}': [{}; {}]", name, type_id, len)?;
+        self.current_indent += 1;
+        Ok(())
+    }
+
+    #[inline]
+    fn close_list<W: ?Sized>(&mut self, _w: &mut W) -> io::Result<()>
+    where
+        W: io::Write
+    {
+        self.current_indent -= 1;
+        Ok(())
+    }
+
+    #[inline]
+    fn write_byte_inner<W>(&mut self, w: &mut W, value: i8) -> io::Result<()>
+    where  
+        W: io::Write
+    {
+        indent(w, self.current_indent, self.indent)?;
+        writeln!(w, "Byte {}", value)?;
         Ok(())
     }
 }

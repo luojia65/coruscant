@@ -1,8 +1,8 @@
 mod ser;
 
-use core::fmt;
 use crate::error::Result;
 use crate::map::Map;
+use core::fmt;
 
 #[derive(Clone, PartialEq)]
 pub enum Value {
@@ -42,8 +42,9 @@ impl fmt::Debug for Value {
 // impl Default for Value {}
 // NBT does not have an null value
 
-pub fn to_value<T>(value: T) -> Result<Value> 
-where T: serde::Serialize 
+pub fn to_value<T>(value: T) -> Result<Value>
+where
+    T: serde::Serialize,
 {
     value.serialize(ser::Serializer)
 }

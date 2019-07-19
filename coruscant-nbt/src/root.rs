@@ -5,7 +5,10 @@ pub struct Root<'k, 'v, T: ?Sized> {
 
 impl<'v, T: ?Sized> From<&'v T> for Root<'_, 'v, T> {
     fn from(value: &'v T) -> Self {
-        Root { root_name: "", value }
+        Root {
+            root_name: "",
+            value,
+        }
     }
 }
 

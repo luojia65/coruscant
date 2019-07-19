@@ -1,8 +1,8 @@
 use core::fmt;
 
-use serde::{Serialize, Deserialize};
-use serde::ser::Serializer;
 use serde::de::{self, Deserializer, Error, Unexpected};
+use serde::ser::Serializer;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Debug)]
 #[serde(rename = "Player")]
@@ -25,11 +25,11 @@ pub enum Dimension {
 impl Serialize for Dimension {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         let number = match *self {
             Dimension::Overworld => 0,
-            Dimension::Nether => -1, 
+            Dimension::Nether => -1,
             Dimension::TheEnd => 1,
         };
         serializer.serialize_i32(number)
@@ -39,7 +39,7 @@ impl Serialize for Dimension {
 impl<'de> Deserialize<'de> for Dimension {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
         struct Visitor;
 
@@ -58,7 +58,10 @@ impl<'de> Deserialize<'de> for Dimension {
                     0 => Ok(Dimension::Overworld),
                     -1 => Ok(Dimension::Nether),
                     1 => Ok(Dimension::TheEnd),
-                    v => Err(Error::invalid_value(Unexpected::Signed(v.into()), &"1, 0 or -1"))
+                    v => Err(Error::invalid_value(
+                        Unexpected::Signed(v.into()),
+                        &"1, 0 or -1",
+                    )),
                 }
             }
         }
@@ -95,15 +98,13 @@ pub struct ItemStructure {
     #[serde(rename = "id")]
     item_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)] 
+    #[serde(default)]
     #[serde(rename = "tag")]
     item_tag: Option<ItemTag>,
 }
 
 #[derive(Serialize, Debug)]
-pub enum ItemTag {
-
-}
+pub enum ItemTag {}
 
 fn main() -> coruscant_nbt::Result<()> {
     let dat = PlayerDat {

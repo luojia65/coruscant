@@ -1,10 +1,25 @@
 [package]
 name = "coruscant-nbt"
-version = "0.1.0"
+description = "A ser/de library for Minecraft's NBT format"
+repository = "https://github.com/luojia65/coruscant/coruscant-nbt"
+readme = "README.md"
 authors = ["luojia65 <me@luojia.cc>"]
+version = "0.1.0"
 edition = "2018"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 # todo: derive only for testing?
 byteorder = "1.3"
+
+[target.'cfg(any(gzip, zlib))'.dependencies]
+flate2 = { version = "1.0", features = ["rust_backend"], default-features = false }
+
+[features]
+default = ["gzip"]
+# Enable support for gzip compressed streams, including from-functions
+# for deserialization and to-functions for serialization.
+gzip = []
+# Enable support for zlib compressed streams, including from-functions
+# for deserialization and to-functions for serialization.
+zlib = []

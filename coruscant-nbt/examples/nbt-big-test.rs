@@ -1,5 +1,4 @@
 /// Test case taken from https://wiki.vg/NBT
-
 use coruscant_nbt::{to_string_transcript, Result};
 use serde::Serialize;
 
@@ -50,8 +49,14 @@ pub struct NestedCompound {
 fn main() -> Result<()> {
     let value = TestStruct {
         nested: Nested {
-            egg: Food { name: "Eggbert", value: 0.5 },
-            ham: Food { name: "Hampus", value: 0.75 },
+            egg: Food {
+                name: "Eggbert",
+                value: 0.5,
+            },
+            ham: Food {
+                name: "Hampus",
+                value: 0.75,
+            },
         },
         byte_test: 127,
         short_test: 32767,
@@ -61,10 +66,15 @@ fn main() -> Result<()> {
         float_test: 0.49823147058486938,
         string_test: "HELLO WORLD THIS IS A TEST STRING!",
         list_long_test: [11, 12, 13, 14, 15],
-        // list_test
         list_compound_test: vec![
-            NestedCompound { created_on: 1264099775885, name: "Compound tag #0" },
-            NestedCompound { created_on: 1264099775885, name: "Compound tag #1" }
+            NestedCompound {
+                created_on: 1264099775885,
+                name: "Compound tag #0",
+            },
+            NestedCompound {
+                created_on: 1264099775885,
+                name: "Compound tag #1",
+            },
         ],
         // byte_array_test
     };

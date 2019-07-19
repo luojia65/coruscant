@@ -1,11 +1,81 @@
 use std::io;
 
-use crate::consts;
-use crate::error::{Error, ErrorCode, Result};
-use crate::root;
-use std::borrow::Cow;
+use crate::{
+    consts,
+    error::{Error, ErrorCode, Result},
+    root,
+};
+use byteorder::{BigEndian, WriteBytesExt};
 use serde::ser::{self, Impossible, Serialize};
-use byteorder::{WriteBytesExt, BigEndian}; // <- SPICY mojang
+use std::borrow::Cow; // <- SPICY mojang
+
+#[cfg(gzip)]
+use flate2::write::GzEncoder;
+#[cfg(zlib)]
+use flate2::write::ZlibEncoder;
+#[cfg(any(gzip, zlib))]
+use flate2::Compression;
+
+pub fn to_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
+where
+    W: io::Write,
+    T: 'v + Serialize + ?Sized,
+    R: Into<root::Root<'k, 'v, T>>,
+{
+    let root::Root { root_name, value } = root.into();
+    let mut ser = Serializer::binary(writer, root_name);
+    value.serialize(&mut ser)
+}
+
+#[cfg(gzip)]
+pub fn to_gzip_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
+where
+    W: io::Write,
+    T: 'v + Serialize + ?Sized,
+    R: Into<root::Root<'k, 'v, T>>,
+{
+    let root::Root { root_name, value } = root.into();
+    let writer = GzEncoder::new(writer, Compression::Default);
+    let mut ser = Serializer::binary(writer, root_name);
+    value.serialize(&mut ser)
+}
+
+#[cfg(zlib)]
+pub fn to_zlib_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
+where
+    W: io::Write,
+    T: 'v + Serialize + ?Sized,
+    R: Into<root::Root<'k, 'v, T>>,
+{
+    let root::Root { root_name, value } = root.into();
+    let writer = ZlibEncoder::new(writer, Compression::Default);
+    let mut ser = Serializer::binary(writer, root_name);
+    value.serialize(&mut ser)
+}
+
+pub fn to_vec<'k, 'v, T, R>(root: R) -> Result<Vec<u8>>
+where
+    T: 'v + Serialize + ?Sized,
+    R: Into<root::Root<'k, 'v, T>>,
+{
+    let root::Root { root_name, value } = root.into();
+    let writer = Vec::with_capacity(128);
+    let mut ser = Serializer::binary(writer, root_name);
+    value.serialize(&mut ser)?;
+    Ok(ser.into_inner())
+}
+
+pub fn to_string_transcript<'k, 'v, T, R>(root: R) -> Result<String>
+where
+    T: 'v + Serialize + ?Sized,
+    R: Into<root::Root<'k, 'v, T>>,
+{
+    let root::Root { root_name, value } = root.into();
+    let writer = Vec::with_capacity(128);
+    let mut ser = Serializer::transcript(writer, root_name);
+    value.serialize(&mut ser)?;
+    Ok(unsafe { String::from_utf8_unchecked(ser.into_inner()) })
+}
 
 // not in no_std circumstances
 struct Serializer<'a, W, F> {
@@ -29,7 +99,12 @@ impl<'a, W, F> Serializer<'a, W, F> {
 
     #[inline]
     fn new(writer: W, formatter: F, root_name: &'a str) -> Self {
-        Serializer { writer, formatter, next_name: root_name.into(), state: State::Root }
+        Serializer {
+            writer,
+            formatter,
+            next_name: root_name.into(),
+            state: State::Root,
+        }
     }
 }
 
@@ -57,8 +132,8 @@ fn sequence_size_unknown() -> Error {
     Error::syntax(ErrorCode::SequenceSizeUnknown, 0, 0)
 }
 
-impl<'a, 'b: 'a, W, F> ser::Serializer for &'a mut Serializer<'b, W, F> 
-where  
+impl<'a, 'b: 'a, W, F> ser::Serializer for &'a mut Serializer<'b, W, F>
+where
     W: io::Write,
     F: Formatter,
 {
@@ -74,8 +149,8 @@ where
     type SerializeStructVariant = Impossible<(), Error>;
 
     return_expr_for_serialized_types! {
-        Err(unsupported_type()); 
-        i128 u8 u16 u32 u64 u128 
+        Err(unsupported_type());
+        i128 u8 u16 u32 u64 u128
         unit bytes
     }
 
@@ -86,90 +161,106 @@ where
 
     #[inline]
     fn serialize_i8(self, value: i8) -> Result<()> {
-        self.formatter.write_byte_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes(),
-            value
-        ).map_err(Error::io)
+        self.formatter
+            .write_byte_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+                value,
+            )
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_i16(self, value: i16) -> Result<()> {
-        self.formatter.write_short_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes(),
-            value
-        ).map_err(Error::io)
+        self.formatter
+            .write_short_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+                value,
+            )
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_i32(self, value: i32) -> Result<()> {
-        self.formatter.write_int_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes(),
-            value
-        ).map_err(Error::io)
+        self.formatter
+            .write_int_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+                value,
+            )
+            .map_err(Error::io)
     }
 
     #[inline]
-    fn serialize_i64(self, value: i64) -> Result<()> {  
-        self.formatter.write_long_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes(),
-            value
-        ).map_err(Error::io)
+    fn serialize_i64(self, value: i64) -> Result<()> {
+        self.formatter
+            .write_long_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+                value,
+            )
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_f32(self, value: f32) -> Result<()> {
-        self.formatter.write_float_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes(),
-            value
-        ).map_err(Error::io)
+        self.formatter
+            .write_float_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+                value,
+            )
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_f64(self, value: f64) -> Result<()> {
-        self.formatter.write_double_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes(),
-            value
-        ).map_err(Error::io)
+        self.formatter
+            .write_double_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+                value,
+            )
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_char(self, value: char) -> Result<()> {
         let mut buf = [0; 4];
         value.encode_utf8(&mut buf);
-        let len = value.len_utf8() as i16; 
-        self.formatter.write_string_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes(),
-            len as i16, 
-            &buf
-        ).map_err(Error::io)
+        let len = value.len_utf8() as i16;
+        self.formatter
+            .write_string_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+                len as i16,
+                &buf,
+            )
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_str(self, s: &str) -> Result<()> {
         if s.len() > i16::max_value() as usize {
-            return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0))
+            return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0));
         }
-        self.formatter.write_string_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes(),
-            s.len() as i16, 
-            s.as_bytes()
-        ).map_err(Error::io)
+        self.formatter
+            .write_string_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+                s.len() as i16,
+                s.as_bytes(),
+            )
+            .map_err(Error::io)
     }
 
     #[inline]
@@ -188,12 +279,16 @@ where
     /// Regard unit structs as an empty NBT compound.
     #[inline]
     fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
-        self.formatter.write_compound_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes()
-        ).map_err(Error::io)?;
-        self.formatter.write_end_tag(&mut self.writer).map_err(Error::io)
+        self.formatter
+            .write_compound_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+            )
+            .map_err(Error::io)?;
+        self.formatter
+            .write_end_tag(&mut self.writer)
+            .map_err(Error::io)
     }
 
     #[inline]
@@ -207,11 +302,7 @@ where
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<()>
+    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<()>
     where
         T: ser::Serialize,
     {
@@ -243,9 +334,9 @@ where
 
     #[inline]
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
-        Ok(SerializeList { 
+        Ok(SerializeList {
             type_id: None,
-            len: len, 
+            len: len,
             ser: self,
         })
     }
@@ -272,34 +363,32 @@ where
 
     #[inline]
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        self.formatter.write_compound_tag(
-            &mut self.writer, 
-            self.next_name.len() as i16, 
-            self.next_name.as_bytes()
-        ).map_err(Error::io)?;
-        Ok(SerializeCompound {
-            ser: self,
-        })
+        self.formatter
+            .write_compound_tag(
+                &mut self.writer,
+                self.next_name.len() as i16,
+                self.next_name.as_bytes(),
+            )
+            .map_err(Error::io)?;
+        Ok(SerializeCompound { ser: self })
     }
 
     #[inline]
-    fn serialize_struct(
-        self,
-        name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(self, name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
         let next_name = if self.state == State::Root && self.next_name == "" {
             self.state = State::Inner;
             name
-        } else { &self.next_name };
-        self.formatter.write_compound_tag(
-            &mut self.writer, 
-            next_name.len() as i16, 
-            next_name.as_bytes()
-        ).map_err(Error::io)?;
-        Ok(SerializeCompound {
-            ser: self,
-        })
+        } else {
+            &self.next_name
+        };
+        self.formatter
+            .write_compound_tag(
+                &mut self.writer,
+                next_name.len() as i16,
+                next_name.as_bytes(),
+            )
+            .map_err(Error::io)?;
+        Ok(SerializeCompound { ser: self })
     }
 
     #[inline]
@@ -318,10 +407,10 @@ struct SerializeCompound<'a, 'b, W, F> {
     ser: &'a mut Serializer<'b, W, F>,
 }
 
-impl<'a, 'b, W, F> ser::SerializeMap for SerializeCompound<'a, 'b, W, F> 
-where 
+impl<'a, 'b, W, F> ser::SerializeMap for SerializeCompound<'a, 'b, W, F>
+where
     W: io::Write,
-    F: Formatter
+    F: Formatter,
 {
     type Ok = ();
     type Error = Error;
@@ -329,7 +418,7 @@ where
     #[inline]
     fn serialize_key<T>(&mut self, key: &T) -> Result<()>
     where
-        T: ?Sized + Serialize
+        T: ?Sized + Serialize,
     {
         key.serialize(MapKeySerializer { ser: self.ser })
     }
@@ -337,20 +426,23 @@ where
     #[inline]
     fn serialize_value<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ?Sized + Serialize
+        T: ?Sized + Serialize,
     {
         value.serialize(&mut *self.ser)
     }
 
     #[inline]
     fn end(self) -> Result<()> {
-        self.ser.formatter.write_end_tag(&mut self.ser.writer).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_end_tag(&mut self.ser.writer)
+            .map_err(Error::io)
     }
 }
 
-impl<'a, 'b, W, F> ser::SerializeStruct for SerializeCompound<'a, 'b, W, F> 
+impl<'a, 'b, W, F> ser::SerializeStruct for SerializeCompound<'a, 'b, W, F>
 where
-    W: io::Write, 
+    W: io::Write,
     F: Formatter,
 {
     type Ok = ();
@@ -358,9 +450,9 @@ where
 
     #[inline]
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
-    where   
-        T: ?Sized + Serialize 
-    {   
+    where
+        T: ?Sized + Serialize,
+    {
         self.ser.next_name = key.into();
         value.serialize(&mut *self.ser)?;
         Ok(())
@@ -368,12 +460,15 @@ where
 
     #[inline]
     fn end(self) -> Result<()> {
-        self.ser.formatter.write_end_tag(&mut self.ser.writer).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_end_tag(&mut self.ser.writer)
+            .map_err(Error::io)
     }
 }
 
 struct MapKeySerializer<'a, 'b, W, F> {
-    ser: &'a mut Serializer<'b, W, F>
+    ser: &'a mut Serializer<'b, W, F>,
 }
 
 #[inline]
@@ -381,12 +476,11 @@ fn key_must_be_a_string() -> Error {
     Error::syntax(ErrorCode::KeyMustBeAString, 0, 0)
 }
 
-impl<'a, 'b, W, F> ser::Serializer for MapKeySerializer<'a, 'b, W, F> 
-where 
+impl<'a, 'b, W, F> ser::Serializer for MapKeySerializer<'a, 'b, W, F>
+where
     W: io::Write,
-    F: Formatter
+    F: Formatter,
 {
-
     type Ok = ();
     type Error = Error;
 
@@ -400,8 +494,8 @@ where
 
     return_expr_for_serialized_types! {
         Err(key_must_be_a_string());
-        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes none some 
-        newtype_variant unit unit_struct seq 
+        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes none some
+        newtype_variant unit unit_struct seq
         tuple tuple_struct tuple_variant struct_variant map struct
     }
 
@@ -421,11 +515,7 @@ where
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<()>
+    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<()>
     where
         T: ser::Serialize,
     {
@@ -442,19 +532,19 @@ struct SerializeList<'a, 'b, W, F> {
 impl<'a, 'b, W, F> ser::SerializeSeq for SerializeList<'a, 'b, W, F>
 where
     W: io::Write,
-    F: Formatter 
+    F: Formatter,
 {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()> 
-    where 
-        T: serde::Serialize
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    where
+        T: serde::Serialize,
     {
         if let Some(type_id) = self.type_id {
-            value.serialize(ListInnerSerializer { 
+            value.serialize(ListInnerSerializer {
                 type_id: type_id,
-                ser: self.ser
+                ser: self.ser,
             })
         } else {
             let type_id = value.serialize(ListHeadSerializer {
@@ -462,34 +552,37 @@ where
                 ser: self.ser,
             })?;
             self.type_id = Some(type_id);
-            value.serialize(ListInnerSerializer { 
+            value.serialize(ListInnerSerializer {
                 type_id: type_id,
-                ser: self.ser
+                ser: self.ser,
             })
         }
     }
 
     fn end(self) -> Result<()> {
-        self.ser.formatter.close_list(&mut self.ser.writer).map_err(Error::io)
+        self.ser
+            .formatter
+            .close_list(&mut self.ser.writer)
+            .map_err(Error::io)
     }
 }
 
 impl<'a, 'b, W, F> ser::SerializeTuple for SerializeList<'a, 'b, W, F>
 where
     W: io::Write,
-    F: Formatter 
+    F: Formatter,
 {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()> 
-    where 
-        T: serde::Serialize
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    where
+        T: serde::Serialize,
     {
         if let Some(type_id) = self.type_id {
-            value.serialize(ListInnerSerializer { 
+            value.serialize(ListInnerSerializer {
                 type_id: type_id,
-                ser: self.ser
+                ser: self.ser,
             })
         } else {
             let type_id = value.serialize(ListHeadSerializer {
@@ -497,46 +590,51 @@ where
                 ser: self.ser,
             })?;
             self.type_id = Some(type_id);
-            value.serialize(ListInnerSerializer { 
+            value.serialize(ListInnerSerializer {
                 type_id: type_id,
-                ser: self.ser
+                ser: self.ser,
             })
         }
     }
 
     fn end(self) -> Result<()> {
-        self.ser.formatter.close_list(&mut self.ser.writer).map_err(Error::io)
+        self.ser
+            .formatter
+            .close_list(&mut self.ser.writer)
+            .map_err(Error::io)
     }
 }
 
 struct ListHeadSerializer<'a, 'b, W, F> {
     len: usize,
-    ser: &'a mut Serializer<'b, W, F>
+    ser: &'a mut Serializer<'b, W, F>,
 }
 
 impl<W, F> ListHeadSerializer<'_, '_, W, F>
 where
     W: io::Write,
-    F: Formatter
+    F: Formatter,
 {
     fn serialize_head(&mut self, type_id: u8) -> Result<u8> {
-        self.ser.formatter.write_list_tag(
-            &mut self.ser.writer, 
-            type_id,
-            self.len as i16,
-            self.ser.next_name.len() as i16, 
-            self.ser.next_name.as_bytes()
-        ).map_err(Error::io)?;
+        self.ser
+            .formatter
+            .write_list_tag(
+                &mut self.ser.writer,
+                type_id,
+                self.len as i16,
+                self.ser.next_name.len() as i16,
+                self.ser.next_name.as_bytes(),
+            )
+            .map_err(Error::io)?;
         Ok(type_id)
     }
 }
 
-impl<'a, 'b: 'a, W, F> ser::Serializer for ListHeadSerializer<'a, 'b, W, F> 
-where 
+impl<'a, 'b: 'a, W, F> ser::Serializer for ListHeadSerializer<'a, 'b, W, F>
+where
     W: io::Write,
-    F: Formatter
+    F: Formatter,
 {
-
     type Ok = u8;
     type Error = Error;
 
@@ -551,7 +649,7 @@ where
     return_expr_for_serialized_types! {
         Err(unsupported_list_inner_type());
         u8 u16 u32 u64 bytes
-        newtype_variant unit unit_struct seq 
+        newtype_variant unit unit_struct seq
         tuple tuple_struct tuple_variant struct_variant
     }
 
@@ -584,7 +682,7 @@ where
         let _ = value;
         self.serialize_head(consts::TYPE_ID_LONG)
     }
-    
+
     #[inline]
     fn serialize_f32(mut self, value: f32) -> Result<Self::Ok> {
         let _ = value;
@@ -625,7 +723,9 @@ where
     #[inline]
     fn serialize_map(mut self, _len: Option<usize>) -> Result<Self::SerializeMap> {
         self.serialize_head(consts::TYPE_ID_COMPOUND)?;
-        Ok(NoOp { type_id: consts::TYPE_ID_COMPOUND })
+        Ok(NoOp {
+            type_id: consts::TYPE_ID_COMPOUND,
+        })
     }
 
     #[inline]
@@ -635,7 +735,9 @@ where
         _len: usize,
     ) -> Result<Self::SerializeStruct> {
         self.serialize_head(consts::TYPE_ID_COMPOUND)?;
-        Ok(NoOp { type_id: consts::TYPE_ID_COMPOUND })
+        Ok(NoOp {
+            type_id: consts::TYPE_ID_COMPOUND,
+        })
     }
 
     #[inline]
@@ -649,11 +751,7 @@ where
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<Self::Ok>
+    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<Self::Ok>
     where
         T: ser::Serialize,
     {
@@ -663,7 +761,7 @@ where
 
 struct ListInnerSerializer<'a, 'b, W, F> {
     type_id: u8,
-    ser: &'a mut Serializer<'b, W, F>
+    ser: &'a mut Serializer<'b, W, F>,
 }
 
 #[inline]
@@ -674,11 +772,11 @@ fn sequence_different_type() -> Error {
 impl<W, F> ListInnerSerializer<'_, '_, W, F>
 where
     W: io::Write,
-    F: Formatter
+    F: Formatter,
 {
     fn verify_type(&self, type_id: u8) -> Result<()> {
         if type_id != self.type_id {
-            return Err(sequence_different_type())
+            return Err(sequence_different_type());
         }
         Ok(())
     }
@@ -689,12 +787,11 @@ fn unsupported_list_inner_type() -> Error {
     Error::syntax(ErrorCode::UnsupportedListInnerType, 0, 0)
 }
 
-impl<'a, 'b: 'a, W, F> ser::Serializer for ListInnerSerializer<'a, 'b, W, F> 
-where 
+impl<'a, 'b: 'a, W, F> ser::Serializer for ListInnerSerializer<'a, 'b, W, F>
+where
     W: io::Write,
-    F: Formatter
+    F: Formatter,
 {
-
     type Ok = ();
     type Error = Error;
 
@@ -709,7 +806,7 @@ where
     return_expr_for_serialized_types! {
         Err(unsupported_list_inner_type());
         u8 u16 u32 u64 bytes
-        newtype_variant unit unit_struct seq 
+        newtype_variant unit unit_struct seq
         tuple tuple_struct tuple_variant struct_variant
     }
 
@@ -721,37 +818,55 @@ where
     #[inline]
     fn serialize_i8(self, value: i8) -> Result<()> {
         self.verify_type(consts::TYPE_ID_BYTE)?;
-        self.ser.formatter.write_byte_inner(&mut self.ser.writer, value).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_byte_inner(&mut self.ser.writer, value)
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_i16(self, value: i16) -> Result<()> {
         self.verify_type(consts::TYPE_ID_SHORT)?;
-        self.ser.formatter.write_short_inner(&mut self.ser.writer, value).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_short_inner(&mut self.ser.writer, value)
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_i32(self, value: i32) -> Result<()> {
         self.verify_type(consts::TYPE_ID_INT)?;
-        self.ser.formatter.write_int_inner(&mut self.ser.writer, value).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_int_inner(&mut self.ser.writer, value)
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_i64(self, value: i64) -> Result<()> {
         self.verify_type(consts::TYPE_ID_LONG)?;
-        self.ser.formatter.write_long_inner(&mut self.ser.writer, value).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_long_inner(&mut self.ser.writer, value)
+            .map_err(Error::io)
     }
-    
+
     #[inline]
     fn serialize_f32(self, value: f32) -> Result<()> {
         self.verify_type(consts::TYPE_ID_FLOAT)?;
-        self.ser.formatter.write_float_inner(&mut self.ser.writer, value).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_float_inner(&mut self.ser.writer, value)
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_f64(self, value: f64) -> Result<()> {
         self.verify_type(consts::TYPE_ID_DOUBLE)?;
-        self.ser.formatter.write_double_inner(&mut self.ser.writer, value).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_double_inner(&mut self.ser.writer, value)
+            .map_err(Error::io)
     }
 
     #[inline]
@@ -759,17 +874,23 @@ where
         self.verify_type(consts::TYPE_ID_STRING)?;
         let mut buf = [0; 4];
         value.encode_utf8(&mut buf);
-        let len = value.len_utf8() as i16;         
-        self.ser.formatter.write_string_inner(&mut self.ser.writer, len, &buf).map_err(Error::io)
+        let len = value.len_utf8() as i16;
+        self.ser
+            .formatter
+            .write_string_inner(&mut self.ser.writer, len, &buf)
+            .map_err(Error::io)
     }
 
     #[inline]
     fn serialize_str(self, s: &str) -> Result<()> {
         self.verify_type(consts::TYPE_ID_STRING)?;
         if s.len() > i16::max_value() as usize {
-            return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0))
+            return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0));
         }
-        self.ser.formatter.write_string_inner(&mut self.ser.writer, s.len() as i16, s.as_bytes()).map_err(Error::io)
+        self.ser
+            .formatter
+            .write_string_inner(&mut self.ser.writer, s.len() as i16, s.as_bytes())
+            .map_err(Error::io)
     }
 
     #[inline]
@@ -788,23 +909,21 @@ where
     #[inline]
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
         self.verify_type(consts::TYPE_ID_COMPOUND)?;
-        self.ser.formatter.write_compound_inner(&mut self.ser.writer).map_err(Error::io)?;
-        Ok(SerializeCompound {
-            ser: self.ser,
-        })
+        self.ser
+            .formatter
+            .write_compound_inner(&mut self.ser.writer)
+            .map_err(Error::io)?;
+        Ok(SerializeCompound { ser: self.ser })
     }
 
     #[inline]
-    fn serialize_struct(
-        self,
-        _name: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
         self.verify_type(consts::TYPE_ID_COMPOUND)?;
-        self.ser.formatter.write_compound_inner(&mut self.ser.writer).map_err(Error::io)?;
-        Ok(SerializeCompound {
-            ser: self.ser,
-        })
+        self.ser
+            .formatter
+            .write_compound_inner(&mut self.ser.writer)
+            .map_err(Error::io)?;
+        Ok(SerializeCompound { ser: self.ser })
     }
 
     #[inline]
@@ -818,11 +937,7 @@ where
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<()>
+    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<()>
     where
         T: ser::Serialize,
     {
@@ -839,7 +954,8 @@ impl ser::SerializeSeq for NoOp {
     type Error = Error;
 
     fn serialize_element<T: ?Sized>(&mut self, _value: &T) -> Result<()>
-        where T: serde::Serialize
+    where
+        T: serde::Serialize,
     {
         Ok(())
     }
@@ -853,9 +969,9 @@ impl ser::SerializeStruct for NoOp {
     type Ok = u8;
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, _value: &T)
-                                  -> Result<()>
-        where T: serde::Serialize
+    fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, _value: &T) -> Result<()>
+    where
+        T: serde::Serialize,
     {
         Ok(())
     }
@@ -870,13 +986,15 @@ impl ser::SerializeMap for NoOp {
     type Error = Error;
 
     fn serialize_key<T: ?Sized>(&mut self, _key: &T) -> Result<()>
-        where T: serde::Serialize
+    where
+        T: serde::Serialize,
     {
         Ok(())
     }
 
     fn serialize_value<T: ?Sized>(&mut self, _value: &T) -> Result<()>
-        where T: serde::Serialize
+    where
+        T: serde::Serialize,
     {
         Ok(())
     }
@@ -888,9 +1006,14 @@ impl ser::SerializeMap for NoOp {
 
 trait Formatter {
     #[inline]
-    fn write_compound_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8]) -> io::Result<()>
+    fn write_compound_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+    ) -> io::Result<()>
     where
-        W: io::Write
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_COMPOUND)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -898,17 +1021,23 @@ trait Formatter {
     }
 
     #[inline]
-    fn write_end_tag<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()> 
-    where 
-        W: io::Write
+    fn write_end_tag<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
+    where
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_END)
     }
 
     #[inline]
-    fn write_byte_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: i8) -> io::Result<()> 
+    fn write_byte_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: i8,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_BYTE)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -917,9 +1046,15 @@ trait Formatter {
     }
 
     #[inline]
-    fn write_short_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: i16) -> io::Result<()> 
+    fn write_short_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: i16,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_SHORT)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -928,9 +1063,15 @@ trait Formatter {
     }
 
     #[inline]
-    fn write_int_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: i32) -> io::Result<()> 
+    fn write_int_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: i32,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_INT)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -939,9 +1080,15 @@ trait Formatter {
     }
 
     #[inline]
-    fn write_long_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: i64) -> io::Result<()> 
+    fn write_long_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: i64,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_LONG)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -950,9 +1097,15 @@ trait Formatter {
     }
 
     #[inline]
-    fn write_float_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: f32) -> io::Result<()> 
+    fn write_float_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: f32,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_FLOAT)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -961,9 +1114,15 @@ trait Formatter {
     }
 
     #[inline]
-    fn write_double_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: f64) -> io::Result<()> 
+    fn write_double_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: f64,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_DOUBLE)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -973,12 +1132,15 @@ trait Formatter {
 
     #[inline]
     fn write_string_tag<W: ?Sized>(
-        &mut self, w: &mut W, 
-        name_len: i16, name_bytes: &[u8], 
-        string_len: i16, string_bytes: &[u8]
-    ) -> io::Result<()> 
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        string_len: i16,
+        string_bytes: &[u8],
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_STRING)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -989,11 +1151,15 @@ trait Formatter {
 
     #[inline]
     fn write_list_tag<W: ?Sized>(
-        &mut self, w: &mut W, type_id: u8, len: i16,
-        name_len: i16, name_bytes: &[u8], 
+        &mut self,
+        w: &mut W,
+        type_id: u8,
+        len: i16,
+        name_len: i16,
+        name_bytes: &[u8],
     ) -> io::Result<()>
     where
-        W: io::Write
+        W: io::Write,
     {
         w.write_u8(consts::TYPE_ID_LIST)?;
         w.write_i16::<BigEndian>(name_len)?;
@@ -1005,7 +1171,7 @@ trait Formatter {
     #[inline]
     fn close_list<W: ?Sized>(&mut self, _w: &mut W) -> io::Result<()>
     where
-        W: io::Write
+        W: io::Write,
     {
         Ok(())
     }
@@ -1013,68 +1179,72 @@ trait Formatter {
     #[inline]
     fn write_compound_inner<W: ?Sized>(&mut self, _w: &mut W) -> io::Result<()>
     where
-        W: io::Write
+        W: io::Write,
     {
         Ok(())
     }
 
     #[inline]
     fn write_byte_inner<W>(&mut self, w: &mut W, value: i8) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         w.write_i8(value)
     }
 
     #[inline]
     fn write_short_inner<W>(&mut self, w: &mut W, value: i16) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         w.write_i16::<BigEndian>(value)
     }
 
     #[inline]
     fn write_int_inner<W>(&mut self, w: &mut W, value: i32) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         w.write_i32::<BigEndian>(value)
     }
 
     #[inline]
     fn write_long_inner<W>(&mut self, w: &mut W, value: i64) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         w.write_i64::<BigEndian>(value)
     }
 
     #[inline]
     fn write_float_inner<W>(&mut self, w: &mut W, value: f32) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         w.write_f32::<BigEndian>(value)
     }
 
     #[inline]
     fn write_double_inner<W>(&mut self, w: &mut W, value: f64) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         w.write_f64::<BigEndian>(value)
     }
 
     #[inline]
-    fn write_string_inner<W: ?Sized>(&mut self, w: &mut W, string_len: i16, string_bytes: &[u8]) -> io::Result<()> 
+    fn write_string_inner<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        string_len: i16,
+        string_bytes: &[u8],
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         w.write_i16::<BigEndian>(string_len)?;
         w.write_all(string_bytes)
     }
-
 }
 
 struct BinaryFormatter;
@@ -1100,9 +1270,14 @@ impl<'a> TranscriptFormatter<'a> {
 }
 
 impl Formatter for TranscriptFormatter<'_> {
-    fn write_compound_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8]) -> io::Result<()>
+    fn write_compound_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+    ) -> io::Result<()>
     where
-        W: io::Write
+        W: io::Write,
     {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
@@ -1112,9 +1287,9 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    fn write_end_tag<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()> 
-    where 
-        W: io::Write
+    fn write_end_tag<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
+    where
+        W: io::Write,
     {
         self.current_indent -= 1;
         indent(w, self.current_indent, self.indent)?;
@@ -1124,10 +1299,16 @@ impl Formatter for TranscriptFormatter<'_> {
         }
         Ok(())
     }
-    
-    fn write_byte_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: i8) -> io::Result<()> 
+
+    fn write_byte_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: i8,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
@@ -1135,10 +1316,16 @@ impl Formatter for TranscriptFormatter<'_> {
         writeln!(w, "Byte '{}' {}", name, value)?;
         Ok(())
     }
-    
-    fn write_short_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: i16) -> io::Result<()> 
+
+    fn write_short_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: i16,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
@@ -1146,10 +1333,16 @@ impl Formatter for TranscriptFormatter<'_> {
         writeln!(w, "Short '{}' {}", name, value)?;
         Ok(())
     }
-    
-    fn write_int_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: i32) -> io::Result<()> 
+
+    fn write_int_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: i32,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
@@ -1157,10 +1350,16 @@ impl Formatter for TranscriptFormatter<'_> {
         writeln!(w, "Int '{}' {}", name, value)?;
         Ok(())
     }
-    
-    fn write_long_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: i64) -> io::Result<()> 
+
+    fn write_long_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: i64,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
@@ -1169,9 +1368,15 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    fn write_float_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: f32) -> io::Result<()> 
+    fn write_float_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: f32,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
@@ -1179,10 +1384,16 @@ impl Formatter for TranscriptFormatter<'_> {
         writeln!(w, "Float '{}' {}", name, value)?;
         Ok(())
     }
-    
-    fn write_double_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8], value: f64) -> io::Result<()> 
+
+    fn write_double_tag<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        value: f64,
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
@@ -1192,12 +1403,15 @@ impl Formatter for TranscriptFormatter<'_> {
     }
 
     fn write_string_tag<W: ?Sized>(
-        &mut self, w: &mut W, 
-        name_len: i16, name_bytes: &[u8], 
-        string_len: i16, string_bytes: &[u8]
-    ) -> io::Result<()> 
+        &mut self,
+        w: &mut W,
+        name_len: i16,
+        name_bytes: &[u8],
+        string_len: i16,
+        string_bytes: &[u8],
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         let _ = (name_len, string_len);
         let name = String::from_utf8_lossy(name_bytes);
@@ -1209,11 +1423,15 @@ impl Formatter for TranscriptFormatter<'_> {
 
     #[inline]
     fn write_list_tag<W: ?Sized>(
-        &mut self, w: &mut W, type_id: u8, len: i16,
-        name_len: i16, name_bytes: &[u8], 
+        &mut self,
+        w: &mut W,
+        type_id: u8,
+        len: i16,
+        name_len: i16,
+        name_bytes: &[u8],
     ) -> io::Result<()>
     where
-        W: io::Write
+        W: io::Write,
     {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
@@ -1226,7 +1444,7 @@ impl Formatter for TranscriptFormatter<'_> {
     #[inline]
     fn close_list<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
     where
-        W: io::Write
+        W: io::Write,
     {
         self.current_indent -= 1;
         indent(w, self.current_indent, self.indent)?;
@@ -1237,7 +1455,7 @@ impl Formatter for TranscriptFormatter<'_> {
     #[inline]
     fn write_compound_inner<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
     where
-        W: io::Write
+        W: io::Write,
     {
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "Compound")?;
@@ -1247,8 +1465,8 @@ impl Formatter for TranscriptFormatter<'_> {
 
     #[inline]
     fn write_byte_inner<W>(&mut self, w: &mut W, value: i8) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "Byte {}", value)?;
@@ -1257,8 +1475,8 @@ impl Formatter for TranscriptFormatter<'_> {
 
     #[inline]
     fn write_short_inner<W>(&mut self, w: &mut W, value: i16) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "Short {}", value)?;
@@ -1267,8 +1485,8 @@ impl Formatter for TranscriptFormatter<'_> {
 
     #[inline]
     fn write_int_inner<W>(&mut self, w: &mut W, value: i32) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "Int {}", value)?;
@@ -1277,8 +1495,8 @@ impl Formatter for TranscriptFormatter<'_> {
 
     #[inline]
     fn write_long_inner<W>(&mut self, w: &mut W, value: i64) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "Long {}", value)?;
@@ -1287,8 +1505,8 @@ impl Formatter for TranscriptFormatter<'_> {
 
     #[inline]
     fn write_float_inner<W>(&mut self, w: &mut W, value: f32) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "Float {}", value)?;
@@ -1297,8 +1515,8 @@ impl Formatter for TranscriptFormatter<'_> {
 
     #[inline]
     fn write_double_inner<W>(&mut self, w: &mut W, value: f64) -> io::Result<()>
-    where  
-        W: io::Write
+    where
+        W: io::Write,
     {
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "Double {}", value)?;
@@ -1306,9 +1524,14 @@ impl Formatter for TranscriptFormatter<'_> {
     }
 
     #[inline]
-    fn write_string_inner<W: ?Sized>(&mut self, w: &mut W, string_len: i16, string_bytes: &[u8]) -> io::Result<()> 
+    fn write_string_inner<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        string_len: i16,
+        string_bytes: &[u8],
+    ) -> io::Result<()>
     where
-        W: io::Write 
+        W: io::Write,
     {
         let _ = string_len;
         let string = String::from_utf8_lossy(string_bytes);
@@ -1327,41 +1550,4 @@ where
     }
 
     Ok(())
-}
-
-pub fn to_writer<'k, 'v, W, T, R>(writer: W, root: R)
-    -> Result<()> 
-where 
-    W: io::Write,
-    T: 'v + Serialize + ?Sized,
-    R: Into<root::Root<'k, 'v, T>>,
-{  
-    let root::Root { root_name, value } = root.into();
-    let mut ser = Serializer::binary(writer, root_name);
-    value.serialize(&mut ser)
-}
-
-pub fn to_vec<'k, 'v, T, R>(root: R) -> Result<Vec<u8>> 
-where 
-    T: 'v + Serialize + ?Sized,
-    R: Into<root::Root<'k, 'v, T>>,
-{
-    let root::Root { root_name, value } = root.into();
-    let writer = Vec::with_capacity(128);
-    let mut ser = Serializer::binary(writer, root_name);
-    value.serialize(&mut ser)?;
-    Ok(ser.into_inner())
-}
-
-pub fn to_string_transcript<'k, 'v, T, R>(root: R) 
-    -> Result<String> 
-where
-    T: 'v + Serialize + ?Sized,
-    R: Into<root::Root<'k, 'v, T>>,
-{
-    let root::Root { root_name, value } = root.into();
-    let writer = Vec::with_capacity(128);
-    let mut ser = Serializer::transcript(writer, root_name);
-    value.serialize(&mut ser)?;
-    Ok(unsafe { String::from_utf8_unchecked(ser.into_inner()) })
 }

@@ -17,13 +17,17 @@ type MapImpl<K, V> = BTreeMap<K, V>;
 impl Map<String, Value> {
     #[inline]
     pub fn new() -> Self {
-        Map { map: BTreeMap::new() }
+        Map {
+            map: BTreeMap::new(),
+        }
     }
 
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         let _ = capacity; // not supported by BTreeMap
-        Map { map: BTreeMap::new() }
+        Map {
+            map: BTreeMap::new(),
+        }
     }
 
     #[inline]
@@ -42,8 +46,8 @@ impl Map<String, Value> {
     }
 
     #[inline]
-    pub fn get<Q: ?Sized>(&self, key: &Q) -> Option<&Value> 
-    where 
+    pub fn get<Q: ?Sized>(&self, key: &Q) -> Option<&Value>
+    where
         String: Borrow<Q>,
         Q: Ord + Eq + Hash,
     {
@@ -52,9 +56,9 @@ impl Map<String, Value> {
 
     #[inline]
     pub fn contains_key<Q: ?Sized>(&self, key: &Q) -> bool
-    where 
+    where
         String: Borrow<Q>,
-        Q: Ord + Eq + Hash, 
+        Q: Ord + Eq + Hash,
     {
         self.map.contains_key(key)
     }
@@ -85,7 +89,7 @@ impl Map<String, Value> {
     #[inline]
     pub fn iter(&self) -> Iter {
         Iter {
-            iter: self.map.iter()
+            iter: self.map.iter(),
         }
     }
     // iter_mut
@@ -128,10 +132,12 @@ macro_rules! delegate_iterator {
 impl<'a> IntoIterator for &'a Map<String, Value> {
     type Item = (&'a String, &'a Value);
     type IntoIter = Iter<'a>;
-    
+
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        Iter { iter: self.map.iter() }
+        Iter {
+            iter: self.map.iter(),
+        }
     }
 }
 
@@ -158,7 +164,7 @@ impl fmt::Debug for Map<String, Value> {
 }
 
 impl<'a, Q: ?Sized> ops::Index<&'a Q> for Map<String, Value>
-where 
+where
     String: Borrow<Q>,
     Q: Ord + Eq + Hash,
 {
@@ -169,21 +175,23 @@ where
     }
 }
 
-impl<'a, Q: ?Sized> ops::IndexMut<&'a Q> for Map<String, Value> 
-where 
+impl<'a, Q: ?Sized> ops::IndexMut<&'a Q> for Map<String, Value>
+where
     String: Borrow<Q>,
     Q: Ord + Eq + Hash,
 {
     fn index_mut(&mut self, index: &Q) -> &mut Value {
-        self.map.get_mut(index).expect("key not found for index_mut")
+        self.map
+            .get_mut(index)
+            .expect("key not found for index_mut")
     }
 }
 
 impl ser::Serialize for Map<String, Value> {
     #[inline]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> 
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: ser::Serializer
+        S: ser::Serializer,
     {
         use serde::ser::SerializeMap;
         let mut map = serializer.serialize_map(Some(self.len()))?;

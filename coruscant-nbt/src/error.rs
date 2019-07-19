@@ -3,7 +3,7 @@ use std::io;
 
 use serde::ser; // {ser, de}
 
-// derive nothing here by now 
+// derive nothing here by now
 pub struct Error {
     err: Box<ErrorImpl>,
 }
@@ -39,14 +39,20 @@ impl Error {
 
     #[inline]
     fn from_inner(code: ErrorCode, line: usize, column: usize) -> Self {
-        Error { err: Box::new(ErrorImpl { code, line, column }) }
+        Error {
+            err: Box::new(ErrorImpl { code, line, column }),
+        }
     }
 }
 
 impl fmt::Debug for Error {
     // todo: improve error message format
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Error at line {}, column {}", self.err.line, self.err.column)
+        write!(
+            f,
+            "Error at line {}, column {}",
+            self.err.line, self.err.column
+        )
     }
 }
 
@@ -62,7 +68,11 @@ impl fmt::Display for ErrorImpl {
             fmt::Display::fmt(&self.code, f)
         } else {
             // todo: improve message format
-            write!(f, "{} at line {} column {}", self.code, self.line, self.column)
+            write!(
+                f,
+                "{} at line {} column {}",
+                self.code, self.line, self.column
+            )
         }
     }
 }
@@ -77,13 +87,14 @@ impl fmt::Display for ErrorCode {
             ErrorCode::InvalidStringLength => f.write_str("invalid string length"),
             ErrorCode::KeyMustBeAString => f.write_str("key must be a string"),
             ErrorCode::SequenceSizeUnknown => f.write_str("size of sequence is unknown"),
-            ErrorCode::SequenceDifferentType => f.write_str("elements of one sequence do not have the same type")
-            // exhaustive
+            ErrorCode::SequenceDifferentType => {
+                f.write_str("elements of one sequence do not have the same type")
+            } // exhaustive
         }
     }
 }
 
-impl std::error::Error for Error {} 
+impl std::error::Error for Error {}
 
 impl ser::Error for Error {
     fn custom<T: fmt::Display>(msg: T) -> Error {

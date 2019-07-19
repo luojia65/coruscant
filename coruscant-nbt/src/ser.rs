@@ -251,7 +251,7 @@ where
         Ok(SerializeList { 
             ser: ListInnerSerializer { 
                 type_id: 0,
-                len_or_remain: len, 
+                len: len, 
                 ser: self 
             } 
         })
@@ -460,7 +460,7 @@ where
     }
 
     fn end(self) -> Result<()> {
-        Ok(())
+        self.ser.ser.formatter.close_list(&mut self.ser.ser.writer).map_err(Error::io)
     }
 }
 
@@ -480,13 +480,13 @@ where
     }
 
     fn end(self) -> Result<()> {
-        Ok(())
+        self.ser.ser.formatter.close_list(&mut self.ser.ser.writer).map_err(Error::io)
     }
 }
 
 struct ListInnerSerializer<'a, 'b, W, F> {
     type_id: u8,
-    len_or_remain: usize,
+    len: usize,
     ser: &'a mut Serializer<'b, W, F>
 }
 
@@ -511,19 +511,10 @@ where
         self.ser.formatter.write_list_tag(
             &mut self.ser.writer, 
             type_id,
-            self.len_or_remain as i16,
+            self.len as i16,
             self.ser.next_name.len() as i16, 
             self.ser.next_name.as_bytes()
         ).map_err(Error::io)
-    }
-
-    fn serialize_close_list(&mut self) -> Result<()> {
-        if self.len_or_remain > 1 {
-            self.len_or_remain -= 1;
-        } else {
-            self.ser.formatter.close_list(&mut self.ser.writer).map_err(Error::io)?;
-        }
-        Ok(())
     }
 }
 
@@ -555,7 +546,6 @@ where
     fn serialize_i8(self, value: i8) -> Result<()> {
         self.serialize_head(consts::TYPE_ID_BYTE)?;
         self.ser.formatter.write_byte_inner(&mut self.ser.writer, value).map_err(Error::io)?;
-        self.serialize_close_list()
     }
 
     #[inline]

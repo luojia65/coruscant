@@ -20,7 +20,7 @@ pub struct TestStruct {
     #[serde(rename = "stringTest")]
     string_test: &'static str,
     #[serde(rename = "listTest (long)")]
-    list_long_test: [i8; 5],
+    list_long_test: [i64; 5],
     // list_compound_test
     // byte_array_test
     #[serde(rename = "nested compound test")]

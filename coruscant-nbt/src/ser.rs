@@ -8,7 +8,7 @@ use serde::ser::{self, Impossible, Serialize};
 use byteorder::{WriteBytesExt, BigEndian}; // <- SPICY mojang
 
 // not in no_std circumstances
-pub struct Serializer<'a, W, F> {
+struct Serializer<'a, W, F> {
     writer: W,
     formatter: F,
     next_name: Cow<'a, str>,
@@ -321,7 +321,7 @@ where
     }
 }
 
-pub struct SerializeCompound<'a, 'b, W, F> {
+struct SerializeCompound<'a, 'b, W, F> {
     ser: &'a mut Serializer<'b, W, F>,
 }
 
@@ -379,7 +379,7 @@ where
     }
 }
 
-pub struct MapKeySerializer<'a, 'b, W, F> {
+struct MapKeySerializer<'a, 'b, W, F> {
     ser: &'a mut Serializer<'b, W, F>
 }
 
@@ -440,7 +440,7 @@ where
     }
 }
 
-pub struct SerializeList<'a, 'b, W, F> {
+struct SerializeList<'a, 'b, W, F> {
     ser: ListInnerSerializer<'a, 'b, W, F>,
 }
 
@@ -484,7 +484,7 @@ where
     }
 }
 
-pub struct ListInnerSerializer<'a, 'b, W, F> {
+struct ListInnerSerializer<'a, 'b, W, F> {
     type_id: u8,
     len_or_remain: usize,
     ser: &'a mut Serializer<'b, W, F>
@@ -581,7 +581,7 @@ where
     }
 }
 
-pub trait Formatter {
+trait Formatter {
     #[inline]
     fn write_compound_tag<W: ?Sized>(&mut self, w: &mut W, name_len: i16, name_bytes: &[u8]) -> io::Result<()>
     where
@@ -716,11 +716,11 @@ pub trait Formatter {
 
 }
 
-pub struct BinaryFormatter;
+struct BinaryFormatter;
 
 impl Formatter for BinaryFormatter {}
 
-pub struct TranscriptFormatter<'a> {
+struct TranscriptFormatter<'a> {
     current_indent: usize,
     indent: &'a [u8],
 }

@@ -21,7 +21,8 @@ pub struct TestStruct {
     string_test: &'static str,
     #[serde(rename = "listTest (long)")]
     list_long_test: [i64; 5],
-    // list_compound_test
+    #[serde(rename = "listTest (compound)")]
+    list_compound_test: Vec<NestedCompound>,
     // byte_array_test
     #[serde(rename = "nested compound test")]
     nested: Nested,
@@ -39,6 +40,13 @@ pub struct Food {
     value: f32,
 }
 
+#[derive(Serialize)]
+pub struct NestedCompound {
+    #[serde(rename = "created-on")]
+    created_on: i64,
+    name: &'static str,
+}
+
 fn main() -> Result<()> {
     let value = TestStruct {
         nested: Nested {
@@ -54,7 +62,10 @@ fn main() -> Result<()> {
         string_test: "HELLO WORLD THIS IS A TEST STRING!",
         list_long_test: [11, 12, 13, 14, 15],
         // list_test
-        // list_compound_test
+        list_compound_test: vec![
+            NestedCompound { created_on: 1264099775885, name: "Compound tag #0" },
+            NestedCompound { created_on: 1264099775885, name: "Compound tag #1" }
+        ],
         // byte_array_test
     };
     println!("{}", to_string_transcript(("Level", &value))?);

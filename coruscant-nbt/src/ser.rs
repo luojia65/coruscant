@@ -1224,11 +1224,13 @@ impl Formatter for TranscriptFormatter<'_> {
     }
 
     #[inline]
-    fn close_list<W: ?Sized>(&mut self, _w: &mut W) -> io::Result<()>
+    fn close_list<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
     where
         W: io::Write
     {
         self.current_indent -= 1;
+        indent(w, self.current_indent, self.indent)?;
+        writeln!(w, "EndList")?;
         Ok(())
     }
 

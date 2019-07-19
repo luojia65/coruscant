@@ -5,15 +5,15 @@ use crate::{
     error::{Error, ErrorCode, Result},
     root,
 };
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{BigEndian, WriteBytesExt}; // <- SPICY mojang
 use serde::ser::{self, Impossible, Serialize};
-use std::borrow::Cow; // <- SPICY mojang
+use std::borrow::Cow;
 
-#[cfg(gzip)]
+#[cfg(feature = "gzip")]
 use flate2::write::GzEncoder;
-#[cfg(zlib)]
+#[cfg(feature = "zlib")]
 use flate2::write::ZlibEncoder;
-#[cfg(any(gzip, zlib))]
+#[cfg(any(feature = "gzip", feature = "zlib"))]
 use flate2::Compression;
 
 pub fn to_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
@@ -27,7 +27,7 @@ where
     value.serialize(&mut ser)
 }
 
-#[cfg(gzip)]
+#[cfg(feature = "gzip")]
 pub fn to_gzip_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
 where
     W: io::Write,
@@ -35,12 +35,12 @@ where
     R: Into<root::Root<'k, 'v, T>>,
 {
     let root::Root { root_name, value } = root.into();
-    let writer = GzEncoder::new(writer, Compression::Default);
+    let writer = GzEncoder::new(writer, Compression::fast());
     let mut ser = Serializer::binary(writer, root_name);
     value.serialize(&mut ser)
 }
 
-#[cfg(zlib)]
+#[cfg(feature = "zlib")]
 pub fn to_zlib_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
 where
     W: io::Write,
@@ -48,7 +48,7 @@ where
     R: Into<root::Root<'k, 'v, T>>,
 {
     let root::Root { root_name, value } = root.into();
-    let writer = ZlibEncoder::new(writer, Compression::Default);
+    let writer = ZlibEncoder::new(writer, Compression::fast());
     let mut ser = Serializer::binary(writer, root_name);
     value.serialize(&mut ser)
 }

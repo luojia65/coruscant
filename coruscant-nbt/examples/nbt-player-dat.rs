@@ -124,5 +124,8 @@ fn main() -> coruscant_nbt::Result<()> {
     println!("{}", s);
     let v = coruscant_nbt::to_vec(&dat)?;
     println!("{:?}", v);
+    let mut vec = Vec::with_capacity(128);
+    coruscant_nbt::to_gzip_writer(&mut vec, &dat)?;
+    println!("{:?}", vec);
     Ok(())
 }

@@ -26,7 +26,8 @@ fn nbt_ser_simple(b: &mut Bencher) {
     let value = Wrap {
         inner: Inner { map },
     };
-    let mut vec = Vec::with_capacity(128); 
+    // 44 bytes should be filled
+    let mut vec = Vec::with_capacity(128);
     b.iter(|| {
         let _ = to_writer(&mut vec, &value).unwrap();
         vec.clear();

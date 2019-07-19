@@ -244,11 +244,9 @@ where
     #[inline]
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
         Ok(SerializeList { 
-            ser: ListInnerSerializer { 
-                type_id: 0,
-                len: len, 
-                ser: self 
-            } 
+            type_id: None,
+            len: len, 
+            ser: self,
         })
     }
 
@@ -436,7 +434,9 @@ where
 }
 
 struct SerializeList<'a, 'b, W, F> {
-    ser: ListInnerSerializer<'a, 'b, W, F>,
+    type_id: Option<u8>,
+    len: usize,
+    ser: &'a mut Serializer<'b, W, F>,
 }
 
 impl<'a, 'b, W, F> ser::SerializeSeq for SerializeList<'a, 'b, W, F>
@@ -451,11 +451,26 @@ where
     where 
         T: serde::Serialize
     {
-        value.serialize(&mut self.ser)
+        if let Some(type_id) = self.type_id {
+            value.serialize(ListInnerSerializer { 
+                type_id: type_id,
+                ser: self.ser
+            })
+        } else {
+            let type_id = value.serialize(ListHeadSerializer {
+                len: self.len,
+                ser: self.ser,
+            })?;
+            self.type_id = Some(type_id);
+            value.serialize(ListInnerSerializer { 
+                type_id: type_id,
+                ser: self.ser
+            })
+        }
     }
 
     fn end(self) -> Result<()> {
-        self.ser.ser.formatter.close_list(&mut self.ser.ser.writer).map_err(Error::io)
+        self.ser.formatter.close_list(&mut self.ser.writer).map_err(Error::io)
     }
 }
 
@@ -471,17 +486,183 @@ where
     where 
         T: serde::Serialize
     {
-        value.serialize(&mut self.ser)
+        if let Some(type_id) = self.type_id {
+            value.serialize(ListInnerSerializer { 
+                type_id: type_id,
+                ser: self.ser
+            })
+        } else {
+            let type_id = value.serialize(ListHeadSerializer {
+                len: self.len,
+                ser: self.ser,
+            })?;
+            self.type_id = Some(type_id);
+            value.serialize(ListInnerSerializer { 
+                type_id: type_id,
+                ser: self.ser
+            })
+        }
     }
 
     fn end(self) -> Result<()> {
-        self.ser.ser.formatter.close_list(&mut self.ser.ser.writer).map_err(Error::io)
+        self.ser.formatter.close_list(&mut self.ser.writer).map_err(Error::io)
+    }
+}
+
+struct ListHeadSerializer<'a, 'b, W, F> {
+    len: usize,
+    ser: &'a mut Serializer<'b, W, F>
+}
+
+impl<W, F> ListHeadSerializer<'_, '_, W, F>
+where
+    W: io::Write,
+    F: Formatter
+{
+    fn serialize_head(&mut self, type_id: u8) -> Result<u8> {
+        self.ser.formatter.write_list_tag(
+            &mut self.ser.writer, 
+            type_id,
+            self.len as i16,
+            self.ser.next_name.len() as i16, 
+            self.ser.next_name.as_bytes()
+        ).map_err(Error::io)?;
+        Ok(type_id)
+    }
+}
+
+impl<'a, 'b: 'a, W, F> ser::Serializer for ListHeadSerializer<'a, 'b, W, F> 
+where 
+    W: io::Write,
+    F: Formatter
+{
+
+    type Ok = u8;
+    type Error = Error;
+
+    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = NoOp;
+    type SerializeStruct = NoOp;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
+
+    return_expr_for_serialized_types! {
+        Err(unsupported_list_inner_type());
+        u8 u16 u32 u64 bytes
+        newtype_variant unit unit_struct seq 
+        tuple tuple_struct tuple_variant struct_variant
+    }
+
+    #[inline]
+    fn serialize_bool(mut self, value: bool) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_BYTE)
+    }
+
+    #[inline]
+    fn serialize_i8(mut self, value: i8) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_BYTE)
+    }
+
+    #[inline]
+    fn serialize_i16(mut self, value: i16) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_SHORT)
+    }
+
+    #[inline]
+    fn serialize_i32(mut self, value: i32) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_INT)
+    }
+
+    #[inline]
+    fn serialize_i64(mut self, value: i64) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_LONG)
+    }
+    
+    #[inline]
+    fn serialize_f32(mut self, value: f32) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_FLOAT)
+    }
+
+    #[inline]
+    fn serialize_f64(mut self, value: f64) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_DOUBLE)
+    }
+
+    #[inline]
+    fn serialize_char(mut self, value: char) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_STRING)
+    }
+
+    #[inline]
+    fn serialize_str(mut self, s: &str) -> Result<Self::Ok> {
+        let _ = s;
+        self.serialize_head(consts::TYPE_ID_STRING)
+    }
+
+    #[inline]
+    fn serialize_none(self) -> Result<Self::Ok> {
+        Ok(consts::TYPE_ID_END) //todo!
+    }
+
+    #[inline]
+    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok>
+    where
+        T: ser::Serialize,
+    {
+        value.serialize(self)
+    }
+
+    #[inline]
+    fn serialize_map(mut self, _len: Option<usize>) -> Result<Self::SerializeMap> {
+        self.serialize_head(consts::TYPE_ID_COMPOUND)?;
+        Ok(NoOp { type_id: consts::TYPE_ID_COMPOUND })
+    }
+
+    #[inline]
+    fn serialize_struct(
+        mut self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStruct> {
+        self.serialize_head(consts::TYPE_ID_COMPOUND)?;
+        Ok(NoOp { type_id: consts::TYPE_ID_COMPOUND })
+    }
+
+    #[inline]
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+    ) -> Result<Self::Ok> {
+        self.serialize_str(variant)
+    }
+
+    #[inline]
+    fn serialize_newtype_struct<T: ?Sized>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok>
+    where
+        T: ser::Serialize,
+    {
+        value.serialize(self)
     }
 }
 
 struct ListInnerSerializer<'a, 'b, W, F> {
     type_id: u8,
-    len: usize,
     ser: &'a mut Serializer<'b, W, F>
 }
 
@@ -495,21 +676,11 @@ where
     W: io::Write,
     F: Formatter
 {
-    fn serialize_head(&mut self, type_id: u8) -> Result<()> {
-        if self.type_id != 0 && type_id != self.type_id {
+    fn verify_type(&self, type_id: u8) -> Result<()> {
+        if type_id != self.type_id {
             return Err(sequence_different_type())
         }
-        if type_id == self.type_id {
-            return Ok(())
-        }
-        self.type_id = type_id;
-        self.ser.formatter.write_list_tag(
-            &mut self.ser.writer, 
-            type_id,
-            self.len as i16,
-            self.ser.next_name.len() as i16, 
-            self.ser.next_name.as_bytes()
-        ).map_err(Error::io)
+        Ok(())
     }
 }
 
@@ -518,7 +689,7 @@ fn unsupported_list_inner_type() -> Error {
     Error::syntax(ErrorCode::UnsupportedListInnerType, 0, 0)
 }
 
-impl<'a, 'b: 'a, W, F> ser::Serializer for &'_ mut ListInnerSerializer<'a, 'b, W, F> 
+impl<'a, 'b: 'a, W, F> ser::Serializer for ListInnerSerializer<'a, 'b, W, F> 
 where 
     W: io::Write,
     F: Formatter
@@ -549,42 +720,43 @@ where
 
     #[inline]
     fn serialize_i8(self, value: i8) -> Result<()> {
-        self.serialize_head(consts::TYPE_ID_BYTE)?;
+        self.verify_type(consts::TYPE_ID_BYTE)?;
         self.ser.formatter.write_byte_inner(&mut self.ser.writer, value).map_err(Error::io)
     }
 
     #[inline]
     fn serialize_i16(self, value: i16) -> Result<()> {
-        self.serialize_head(consts::TYPE_ID_SHORT)?;
+        self.verify_type(consts::TYPE_ID_SHORT)?;
         self.ser.formatter.write_short_inner(&mut self.ser.writer, value).map_err(Error::io)
     }
 
     #[inline]
     fn serialize_i32(self, value: i32) -> Result<()> {
-        self.serialize_head(consts::TYPE_ID_INT)?;
+        self.verify_type(consts::TYPE_ID_INT)?;
         self.ser.formatter.write_int_inner(&mut self.ser.writer, value).map_err(Error::io)
     }
 
     #[inline]
     fn serialize_i64(self, value: i64) -> Result<()> {
-        self.serialize_head(consts::TYPE_ID_LONG)?;
+        self.verify_type(consts::TYPE_ID_LONG)?;
         self.ser.formatter.write_long_inner(&mut self.ser.writer, value).map_err(Error::io)
     }
     
     #[inline]
     fn serialize_f32(self, value: f32) -> Result<()> {
-        self.serialize_head(consts::TYPE_ID_FLOAT)?;
+        self.verify_type(consts::TYPE_ID_FLOAT)?;
         self.ser.formatter.write_float_inner(&mut self.ser.writer, value).map_err(Error::io)
     }
 
     #[inline]
     fn serialize_f64(self, value: f64) -> Result<()> {
-        self.serialize_head(consts::TYPE_ID_DOUBLE)?;
+        self.verify_type(consts::TYPE_ID_DOUBLE)?;
         self.ser.formatter.write_double_inner(&mut self.ser.writer, value).map_err(Error::io)
     }
 
     #[inline]
     fn serialize_char(self, value: char) -> Result<()> {
+        self.verify_type(consts::TYPE_ID_STRING)?;
         let mut buf = [0; 4];
         value.encode_utf8(&mut buf);
         let len = value.len_utf8() as i16;         
@@ -593,6 +765,7 @@ where
 
     #[inline]
     fn serialize_str(self, s: &str) -> Result<()> {
+        self.verify_type(consts::TYPE_ID_STRING)?;
         if s.len() > i16::max_value() as usize {
             return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0))
         }
@@ -614,24 +787,24 @@ where
 
     #[inline]
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
+        self.verify_type(consts::TYPE_ID_COMPOUND)?;
         self.ser.formatter.write_compound_inner(&mut self.ser.writer).map_err(Error::io)?;
-        // Ok(SerializeCompound {
-        //     ser: self.ser,
-        // })
-        unimplemented!()
+        Ok(SerializeCompound {
+            ser: self.ser,
+        })
     }
 
     #[inline]
     fn serialize_struct(
         self,
-        name: &'static str,
+        _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct> {
+        self.verify_type(consts::TYPE_ID_COMPOUND)?;
         self.ser.formatter.write_compound_inner(&mut self.ser.writer).map_err(Error::io)?;
-        // Ok(SerializeCompound {
-        //     ser: self.ser,
-        // })
-        unimplemented!()
+        Ok(SerializeCompound {
+            ser: self.ser,
+        })
     }
 
     #[inline]
@@ -654,6 +827,62 @@ where
         T: ser::Serialize,
     {
         value.serialize(self)
+    }
+}
+
+struct NoOp {
+    type_id: u8,
+}
+
+impl ser::SerializeSeq for NoOp {
+    type Ok = u8;
+    type Error = Error;
+
+    fn serialize_element<T: ?Sized>(&mut self, _value: &T) -> Result<()>
+        where T: serde::Serialize
+    {
+        Ok(())
+    }
+
+    fn end(self) -> Result<u8> {
+        Ok(self.type_id)
+    }
+}
+
+impl ser::SerializeStruct for NoOp {
+    type Ok = u8;
+    type Error = Error;
+
+    fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, _value: &T)
+                                  -> Result<()>
+        where T: serde::Serialize
+    {
+        Ok(())
+    }
+
+    fn end(self) -> Result<u8> {
+        Ok(self.type_id)
+    }
+}
+
+impl ser::SerializeMap for NoOp {
+    type Ok = u8;
+    type Error = Error;
+
+    fn serialize_key<T: ?Sized>(&mut self, _key: &T) -> Result<()>
+        where T: serde::Serialize
+    {
+        Ok(())
+    }
+
+    fn serialize_value<T: ?Sized>(&mut self, _value: &T) -> Result<()>
+        where T: serde::Serialize
+    {
+        Ok(())
+    }
+
+    fn end(self) -> Result<u8> {
+        Ok(self.type_id)
     }
 }
 
@@ -782,7 +1011,7 @@ trait Formatter {
     }
 
     #[inline]
-    fn write_compound_inner<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
+    fn write_compound_inner<W: ?Sized>(&mut self, _w: &mut W) -> io::Result<()>
     where
         W: io::Write
     {

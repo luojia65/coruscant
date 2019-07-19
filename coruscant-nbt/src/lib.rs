@@ -11,6 +11,7 @@ pub use ser::to_zlib_writer;
 #[macro_use]
 mod macros;
 mod consts;
+pub mod de;
 pub mod error;
 mod map;
 pub mod root;

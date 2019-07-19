@@ -1,4 +1,8 @@
-use coruscant_nbt::{to_string_transcript, Result};
+#![feature(test)]
+extern crate test;
+use test::Bencher;
+
+use coruscant_nbt::to_writer;
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -14,14 +18,17 @@ struct Inner {
     map: HashMap<&'static str, f32>,
 }
 
-fn main() -> Result<()> {
+#[bench]
+fn nbt_ser_simple(b: &mut Bencher) {
     let mut map = HashMap::new();
     map.insert("123", 123.456);
     map.insert("456", 789.012);
     let value = Wrap {
         inner: Inner { map },
     };
-    let ans = to_string_transcript(&value)?;
-    println!("{}", ans);
-    Ok(())
+    let mut vec = Vec::with_capacity(128); 
+    b.iter(|| {
+        let _ = to_writer(&mut vec, &value).unwrap();
+        vec.clear();
+    });
 }

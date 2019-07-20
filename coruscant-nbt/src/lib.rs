@@ -13,7 +13,7 @@ pub use ser::to_gzip_writer;
 #[doc(inline)]
 pub use ser::to_zlib_writer;
 #[doc(inline)]
-pub use ser::{to_string_transcript, to_vec, to_writer};
+pub use ser::{Serializer, to_string_transcript, to_vec, to_writer};
 
 #[doc(inline)]
 pub use de::{from_reader};

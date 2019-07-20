@@ -48,11 +48,15 @@ impl Error {
 impl fmt::Debug for Error {
     // todo: improve error message format
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Error at line {}, column {}",
-            self.err.line, self.err.column
-        )
+        if self.err.line == 0 {
+            fmt::Display::fmt(&self.err.code, f)
+        } else {
+            write!(
+                f,
+                "{} at line {} column {}",
+                self.err.code, self.err.line, self.err.column
+            )
+        }
     }
 }
 

@@ -78,7 +78,7 @@ where
 }
 
 // not in no_std circumstances
-struct Serializer<'a, W, F> {
+pub struct Serializer<'a, W, F> {
     writer: W,
     formatter: F,
     next_name: Cow<'a, str>,
@@ -403,7 +403,8 @@ where
     }
 }
 
-struct SerializeCompound<'a, 'b, W, F> {
+#[doc(hidden)]
+pub struct SerializeCompound<'a, 'b, W, F> {
     ser: &'a mut Serializer<'b, W, F>,
 }
 
@@ -523,7 +524,8 @@ where
     }
 }
 
-struct SerializeList<'a, 'b, W, F> {
+#[doc(hidden)]
+pub struct SerializeList<'a, 'b, W, F> {
     type_id: Option<u8>,
     len: usize,
     ser: &'a mut Serializer<'b, W, F>,
@@ -1004,7 +1006,7 @@ impl ser::SerializeMap for NoOp {
     }
 }
 
-trait Formatter {
+pub trait Formatter {
     #[inline]
     fn write_compound_tag<W: ?Sized>(
         &mut self,
@@ -1247,11 +1249,11 @@ trait Formatter {
     }
 }
 
-struct BinaryFormatter;
+pub struct BinaryFormatter;
 
 impl Formatter for BinaryFormatter {}
 
-struct TranscriptFormatter<'a> {
+pub struct TranscriptFormatter<'a> {
     current_indent: usize,
     indent: &'a [u8],
 }

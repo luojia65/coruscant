@@ -1,5 +1,5 @@
 /// Test case taken from https://wiki.vg/NBT
-use coruscant_nbt::{to_string_transcript, Result};
+use coruscant_nbt::{to_string_transcript, to_vec, Result};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -78,6 +78,7 @@ fn main() -> Result<()> {
         ],
         // byte_array_test
     };
+    println!("{}", to_vec(&value)?.len());
     println!("{}", to_string_transcript(("Level", &value))?);
     Ok(())
 }

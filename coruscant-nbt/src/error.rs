@@ -1,7 +1,7 @@
 use core::fmt;
 use std::io;
 
-use serde::ser; // {ser, de}
+use serde::{ser, de};
 
 // derive nothing here by now
 pub struct Error {
@@ -104,4 +104,10 @@ impl ser::Error for Error {
     }
 }
 
-// impl de::Error for Error
+impl de::Error for Error {
+    fn custom<T: fmt::Display>(msg: T) -> Error {
+        let string = msg.to_string();
+        let code = ErrorCode::Message(string.into_boxed_str());
+        Self::from_inner(code, 0, 0)
+    }
+}

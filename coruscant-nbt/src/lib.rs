@@ -16,6 +16,9 @@ pub use ser::to_zlib_writer;
 pub use ser::{to_string_transcript, to_vec, to_writer};
 
 #[doc(inline)]
+pub use de::{from_reader};
+
+#[doc(inline)]
 pub use value::{to_value, Value};
 
 #[macro_use]

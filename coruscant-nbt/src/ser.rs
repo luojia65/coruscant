@@ -498,6 +498,7 @@ where
         tuple tuple_struct tuple_variant struct_variant map struct
     }
 
+    #[inline]
     fn serialize_str(self, value: &str) -> Result<()> {
         self.ser.next_name = value.to_owned().into();
         Ok(())
@@ -537,6 +538,7 @@ where
     type Ok = ();
     type Error = Error;
 
+    #[inline]
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
         T: serde::Serialize,
@@ -559,6 +561,7 @@ where
         }
     }
 
+    #[inline]
     fn end(self) -> Result<()> {
         self.ser
             .formatter
@@ -575,6 +578,7 @@ where
     type Ok = ();
     type Error = Error;
 
+    #[inline]
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
         T: serde::Serialize,
@@ -597,6 +601,7 @@ where
         }
     }
 
+    #[inline]
     fn end(self) -> Result<()> {
         self.ser
             .formatter
@@ -615,6 +620,7 @@ where
     W: io::Write,
     F: Formatter,
 {
+    #[inline]
     fn serialize_head(&mut self, type_id: u8) -> Result<u8> {
         self.ser
             .formatter
@@ -774,6 +780,7 @@ where
     W: io::Write,
     F: Formatter,
 {
+    #[inline]
     fn verify_type(&self, type_id: u8) -> Result<()> {
         if type_id != self.type_id {
             return Err(sequence_different_type());
@@ -953,6 +960,7 @@ impl ser::SerializeSeq for NoOp {
     type Ok = u8;
     type Error = Error;
 
+    #[inline]
     fn serialize_element<T: ?Sized>(&mut self, _value: &T) -> Result<()>
     where
         T: serde::Serialize,
@@ -960,6 +968,7 @@ impl ser::SerializeSeq for NoOp {
         Ok(())
     }
 
+    #[inline]
     fn end(self) -> Result<u8> {
         Ok(self.type_id)
     }
@@ -969,6 +978,7 @@ impl ser::SerializeStruct for NoOp {
     type Ok = u8;
     type Error = Error;
 
+    #[inline]
     fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, _value: &T) -> Result<()>
     where
         T: serde::Serialize,
@@ -976,6 +986,7 @@ impl ser::SerializeStruct for NoOp {
         Ok(())
     }
 
+    #[inline]
     fn end(self) -> Result<u8> {
         Ok(self.type_id)
     }
@@ -985,6 +996,7 @@ impl ser::SerializeMap for NoOp {
     type Ok = u8;
     type Error = Error;
 
+    #[inline]
     fn serialize_key<T: ?Sized>(&mut self, _key: &T) -> Result<()>
     where
         T: serde::Serialize,
@@ -992,6 +1004,7 @@ impl ser::SerializeMap for NoOp {
         Ok(())
     }
 
+    #[inline]
     fn serialize_value<T: ?Sized>(&mut self, _value: &T) -> Result<()>
     where
         T: serde::Serialize,
@@ -999,6 +1012,7 @@ impl ser::SerializeMap for NoOp {
         Ok(())
     }
 
+    #[inline]
     fn end(self) -> Result<u8> {
         Ok(self.type_id)
     }
@@ -1169,18 +1183,20 @@ pub trait Formatter {
     }
 
     #[inline]
-    fn close_list<W: ?Sized>(&mut self, _w: &mut W) -> io::Result<()>
+    fn close_list<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
     where
         W: io::Write,
     {
+        let _ = w;
         Ok(())
     }
 
     #[inline]
-    fn write_compound_inner<W: ?Sized>(&mut self, _w: &mut W) -> io::Result<()>
+    fn write_compound_inner<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
     where
         W: io::Write,
     {
+        let _ = w;
         Ok(())
     }
 
@@ -1257,10 +1273,12 @@ pub struct TranscriptFormatter<'a> {
 }
 
 impl<'a> TranscriptFormatter<'a> {
+    #[inline]
     pub fn new() -> Self {
         Default::default()
     }
 
+    #[inline]
     pub fn with_indent(indent: &'a [u8]) -> Self {
         TranscriptFormatter {
             current_indent: 0,
@@ -1270,6 +1288,7 @@ impl<'a> TranscriptFormatter<'a> {
 }
 
 impl Default for TranscriptFormatter<'_> {
+    #[inline]
     fn default() -> Self {
         Self::with_indent(b"  ")
     }
@@ -1427,7 +1446,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_list_tag<W: ?Sized>(
         &mut self,
         w: &mut W,
@@ -1447,7 +1465,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn close_list<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
     where
         W: io::Write,
@@ -1458,7 +1475,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_compound_inner<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
     where
         W: io::Write,
@@ -1469,7 +1485,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_byte_inner<W>(&mut self, w: &mut W, value: i8) -> io::Result<()>
     where
         W: io::Write,
@@ -1479,7 +1494,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_short_inner<W>(&mut self, w: &mut W, value: i16) -> io::Result<()>
     where
         W: io::Write,
@@ -1489,7 +1503,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_int_inner<W>(&mut self, w: &mut W, value: i32) -> io::Result<()>
     where
         W: io::Write,
@@ -1499,7 +1512,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_long_inner<W>(&mut self, w: &mut W, value: i64) -> io::Result<()>
     where
         W: io::Write,
@@ -1509,7 +1521,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_float_inner<W>(&mut self, w: &mut W, value: f32) -> io::Result<()>
     where
         W: io::Write,
@@ -1519,7 +1530,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_double_inner<W>(&mut self, w: &mut W, value: f64) -> io::Result<()>
     where
         W: io::Write,
@@ -1529,7 +1539,6 @@ impl Formatter for TranscriptFormatter<'_> {
         Ok(())
     }
 
-    #[inline]
     fn write_string_inner<W: ?Sized>(
         &mut self,
         w: &mut W,

@@ -4,6 +4,8 @@ use serde::de::{self, Deserializer, Error, Unexpected};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 
+use coruscant_nbt::Compression;
+
 #[derive(Serialize, Debug)]
 #[serde(rename = "Player")]
 pub struct PlayerDat {
@@ -125,7 +127,7 @@ fn main() -> coruscant_nbt::Result<()> {
     let v = coruscant_nbt::to_vec(&dat)?;
     println!("{:?}", v);
     let mut vec = Vec::with_capacity(128);
-    coruscant_nbt::to_gzip_writer(&mut vec, &dat)?;
+    coruscant_nbt::to_gzip_writer(&mut vec, &dat, Compression::fast())?;
     println!("{:?}", vec);
     Ok(())
 }

@@ -3,7 +3,7 @@ use std::io;
 use crate::{
     consts,
     error::{Error, ErrorCode, Result},
-    root,
+    root, Compression,
 };
 use byteorder::{BigEndian, WriteBytesExt}; // <- SPICY mojang
 use serde::ser::{self, Impossible, Serialize};
@@ -13,8 +13,6 @@ use std::borrow::Cow;
 use flate2::write::GzEncoder;
 #[cfg(feature = "zlib")]
 use flate2::write::ZlibEncoder;
-#[cfg(any(feature = "gzip", feature = "zlib"))]
-use flate2::Compression;
 
 pub fn to_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
 where
@@ -28,27 +26,27 @@ where
 }
 
 #[cfg(feature = "gzip")]
-pub fn to_gzip_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
+pub fn to_gzip_writer<'k, 'v, W, T, R>(writer: W, root: R, compression: Compression) -> Result<()>
 where
     W: io::Write,
     T: 'v + Serialize + ?Sized,
     R: Into<root::Root<'k, 'v, T>>,
 {
     let root::Root { root_name, value } = root.into();
-    let writer = GzEncoder::new(writer, Compression::fast());
+    let writer = GzEncoder::new(writer, compression);
     let mut ser = Serializer::binary(writer, root_name);
     value.serialize(&mut ser)
 }
 
 #[cfg(feature = "zlib")]
-pub fn to_zlib_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
+pub fn to_zlib_writer<'k, 'v, W, T, R>(writer: W, root: R, compression: Compression) -> Result<()>
 where
     W: io::Write,
     T: 'v + Serialize + ?Sized,
     R: Into<root::Root<'k, 'v, T>>,
 {
     let root::Root { root_name, value } = root.into();
-    let writer = ZlibEncoder::new(writer, Compression::fast());
+    let writer = ZlibEncoder::new(writer, compression);
     let mut ser = Serializer::binary(writer, root_name);
     value.serialize(&mut ser)
 }
@@ -336,7 +334,7 @@ where
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
         Ok(SerializeList {
             type_id: None,
-            len: len,
+            len,
             ser: self,
         })
     }
@@ -545,7 +543,7 @@ where
     {
         if let Some(type_id) = self.type_id {
             value.serialize(ListInnerSerializer {
-                type_id: type_id,
+                type_id,
                 ser: self.ser,
             })
         } else {
@@ -555,7 +553,7 @@ where
             })?;
             self.type_id = Some(type_id);
             value.serialize(ListInnerSerializer {
-                type_id: type_id,
+                type_id,
                 ser: self.ser,
             })
         }
@@ -583,7 +581,7 @@ where
     {
         if let Some(type_id) = self.type_id {
             value.serialize(ListInnerSerializer {
-                type_id: type_id,
+                type_id,
                 ser: self.ser,
             })
         } else {
@@ -593,7 +591,7 @@ where
             })?;
             self.type_id = Some(type_id);
             value.serialize(ListInnerSerializer {
-                type_id: type_id,
+                type_id,
                 ser: self.ser,
             })
         }
@@ -1260,7 +1258,7 @@ pub struct TranscriptFormatter<'a> {
 
 impl<'a> TranscriptFormatter<'a> {
     pub fn new() -> Self {
-        Self::with_indent(b"  ")
+        Default::default()
     }
 
     pub fn with_indent(indent: &'a [u8]) -> Self {
@@ -1268,6 +1266,12 @@ impl<'a> TranscriptFormatter<'a> {
             current_indent: 0,
             indent,
         }
+    }
+}
+
+impl Default for TranscriptFormatter<'_> {
+    fn default() -> Self {
+        Self::with_indent(b"  ")
     }
 }
 

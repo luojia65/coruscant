@@ -6,7 +6,7 @@
 // 
 // Due to the loss of number accuracy in JSON, this program only support limited
 // input data type from JSON, for example objects and strings. However, if we do
-// contrarily from NBT to JSON, full transcode support is possibleas the former 
+// contrarily from NBT to JSON, full transcode support is possible as the former 
 // does record all the data types for numbers.
 
 use std::io::{Cursor, Write};

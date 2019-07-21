@@ -1,5 +1,5 @@
 use coruscant_nbt::{from_reader, to_vec, Result};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 struct TestStruct {

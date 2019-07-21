@@ -1,5 +1,5 @@
-use serde::Serialize;
 use coruscant_nbt::to_string_transcript;
+use serde::Serialize;
 
 #[derive(Serialize)]
 struct Book {

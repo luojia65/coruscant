@@ -1,11 +1,15 @@
+use crate::error::Result;
+use byteorder::{BigEndian, ReadBytesExt};
 use std::io;
 
 pub trait Read<'de> {
-
+    fn peek_u8(&mut self) -> Result<Option<u8>>;
 }
 
 pub struct IoRead<R> {
     read: R,
+    cur_index: usize,
+    tmp_byte: Option<u8>,
 }
 
 // pub struct SliceRead<'a> {
@@ -14,12 +18,16 @@ pub struct IoRead<R> {
 
 ///////////////////////////////////////////////////////////////
 
-impl<R> IoRead<R> 
+impl<R> IoRead<R>
 where
-    R: io::Read
+    R: io::Read,
 {
     pub fn new(read: R) -> Self {
-        IoRead { read }
+        IoRead {
+            read,
+            cur_index: 0,
+            tmp_byte: None,
+        }
     }
 
     pub fn into_inner(self) -> R {
@@ -27,10 +35,19 @@ where
     }
 }
 
-impl<'de, R> Read<'de> for IoRead<R> 
-where 
-    R: io::Read
-{}
+impl<'de, R> Read<'de> for IoRead<R>
+where
+    R: io::Read,
+{
+    fn peek_u8(&mut self) -> Result<Option<u8>> {
+        if let Some(byte) = self.tmp_byte {
+            Ok(Some(byte))
+        } else {
+            let byte = self.read.read_u8()?;
+            Ok(Some(byte))
+        }
+    }
+}
 
 ///////////////////////////////////////////////////////////////
 

@@ -22,7 +22,9 @@ pub struct TestStruct {
     list_long_test: [i64; 5],
     #[serde(rename = "listTest (compound)")]
     list_compound_test: Vec<NestedCompound>,
-    #[serde(rename = "byteArrayTest (the first 1000 values of (n*n*255+n*7)%100, starting with n=0 (0, 62, 34, 16, 8, ...))")]
+    #[serde(
+        rename = "byteArrayTest (the first 1000 values of (n*n*255+n*7)%100, starting with n=0 (0, 62, 34, 16, 8, ...))"
+    )]
     byte_array_test: Box<[i8]>,
     #[serde(rename = "nested compound test")]
     nested: Nested,
@@ -50,7 +52,7 @@ pub struct NestedCompound {
 fn main() -> Result<()> {
     let mut byte_array_test = Vec::new();
     for i in 0i32..1000 {
-        let value = (i*i*255 + i*7)%100;
+        let value = (i * i * 255 + i * 7) % 100;
         byte_array_test.push(value as i8)
     }
     let byte_array_test = byte_array_test.into_boxed_slice();
@@ -83,7 +85,7 @@ fn main() -> Result<()> {
                 name: "Compound tag #1",
             },
         ],
-        byte_array_test
+        byte_array_test,
     };
     println!("{}", to_vec(&value)?.len());
     println!("{}", to_string_transcript(("Level", &value))?);

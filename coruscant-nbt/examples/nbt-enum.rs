@@ -17,7 +17,7 @@
 //     Z,
 // }
 
-// /* 
+// /*
 // Compound ''
 //     Compound 'inner'
 //         Int a 0
@@ -29,14 +29,13 @@
 //     Int inner 0
 // EndCompound
 //  */
-
 // fn main () -> coruscant_nbt::Result<()> {
-//     let w = E::W { a: 0, b: 0 }; 
+//     let w = E::W { a: 0, b: 0 };
 //     let x = E::X(0, 0);
 //     let y = E::Y(0);
 //     let z = E::Z;
 //     let (w, x, y, z) = (
-//         Wrap { inner: w }, Wrap { inner: x }, 
+//         Wrap { inner: w }, Wrap { inner: x },
 //         Wrap { inner: y }, Wrap { inner: z }
 //     );
 //     println!("w => {}", to_string_transcript(&w)?);

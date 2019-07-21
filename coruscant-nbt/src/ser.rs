@@ -159,74 +159,68 @@ where
 
     #[inline]
     fn serialize_i8(self, value: i8) -> Result<()> {
-        self.formatter
-            .write_byte_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-                value,
-            )
-            .map_err(Error::io)
+        self.formatter.write_byte_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+            value,
+        )?;
+        Ok(())
     }
 
     #[inline]
     fn serialize_i16(self, value: i16) -> Result<()> {
-        self.formatter
-            .write_short_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-                value,
-            )
-            .map_err(Error::io)
+        self.formatter.write_short_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+            value,
+        )?;
+        Ok(())
     }
 
     #[inline]
     fn serialize_i32(self, value: i32) -> Result<()> {
-        self.formatter
-            .write_int_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-                value,
-            )
-            .map_err(Error::io)
+        self.formatter.write_int_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+            value,
+        )?;
+        Ok(())
     }
 
     #[inline]
     fn serialize_i64(self, value: i64) -> Result<()> {
-        self.formatter
-            .write_long_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-                value,
-            )
-            .map_err(Error::io)
+        self.formatter.write_long_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+            value,
+        )?;
+        Ok(())
     }
 
     #[inline]
     fn serialize_f32(self, value: f32) -> Result<()> {
-        self.formatter
-            .write_float_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-                value,
-            )
-            .map_err(Error::io)
+        self.formatter.write_float_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+            value,
+        )?;
+        Ok(())
     }
 
     #[inline]
     fn serialize_f64(self, value: f64) -> Result<()> {
-        self.formatter
-            .write_double_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-                value,
-            )
-            .map_err(Error::io)
+        self.formatter.write_double_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+            value,
+        )?;
+        Ok(())
     }
 
     #[inline]
@@ -234,15 +228,14 @@ where
         let mut buf = [0; 4];
         value.encode_utf8(&mut buf);
         let len = value.len_utf8() as i16;
-        self.formatter
-            .write_string_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-                len as i16,
-                &buf,
-            )
-            .map_err(Error::io)
+        self.formatter.write_string_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+            len as i16,
+            &buf,
+        )?;
+        Ok(())
     }
 
     #[inline]
@@ -250,15 +243,14 @@ where
         if s.len() > i16::max_value() as usize {
             return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0));
         }
-        self.formatter
-            .write_string_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-                s.len() as i16,
-                s.as_bytes(),
-            )
-            .map_err(Error::io)
+        self.formatter.write_string_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+            s.len() as i16,
+            s.as_bytes(),
+        )?;
+        Ok(())
     }
 
     #[inline]
@@ -277,16 +269,13 @@ where
     /// Regard unit structs as an empty NBT compound.
     #[inline]
     fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
-        self.formatter
-            .write_compound_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-            )
-            .map_err(Error::io)?;
-        self.formatter
-            .write_end_tag(&mut self.writer)
-            .map_err(Error::io)
+        self.formatter.write_compound_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+        )?;
+        self.formatter.write_end_tag(&mut self.writer)?;
+        Ok(())
     }
 
     #[inline]
@@ -361,13 +350,11 @@ where
 
     #[inline]
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        self.formatter
-            .write_compound_tag(
-                &mut self.writer,
-                self.next_name.len() as i16,
-                self.next_name.as_bytes(),
-            )
-            .map_err(Error::io)?;
+        self.formatter.write_compound_tag(
+            &mut self.writer,
+            self.next_name.len() as i16,
+            self.next_name.as_bytes(),
+        )?;
         Ok(SerializeCompound { ser: self })
     }
 
@@ -379,13 +366,11 @@ where
         } else {
             &self.next_name
         };
-        self.formatter
-            .write_compound_tag(
-                &mut self.writer,
-                next_name.len() as i16,
-                next_name.as_bytes(),
-            )
-            .map_err(Error::io)?;
+        self.formatter.write_compound_tag(
+            &mut self.writer,
+            next_name.len() as i16,
+            next_name.as_bytes(),
+        )?;
         Ok(SerializeCompound { ser: self })
     }
 
@@ -432,10 +417,8 @@ where
 
     #[inline]
     fn end(self) -> Result<()> {
-        self.ser
-            .formatter
-            .write_end_tag(&mut self.ser.writer)
-            .map_err(Error::io)
+        self.ser.formatter.write_end_tag(&mut self.ser.writer)?;
+        Ok(())
     }
 }
 
@@ -459,10 +442,8 @@ where
 
     #[inline]
     fn end(self) -> Result<()> {
-        self.ser
-            .formatter
-            .write_end_tag(&mut self.ser.writer)
-            .map_err(Error::io)
+        self.ser.formatter.write_end_tag(&mut self.ser.writer)?;
+        Ok(())
     }
 }
 
@@ -563,10 +544,8 @@ where
 
     #[inline]
     fn end(self) -> Result<()> {
-        self.ser
-            .formatter
-            .close_list(&mut self.ser.writer)
-            .map_err(Error::io)
+        self.ser.formatter.close_list(&mut self.ser.writer)?;
+        Ok(())
     }
 }
 
@@ -603,10 +582,8 @@ where
 
     #[inline]
     fn end(self) -> Result<()> {
-        self.ser
-            .formatter
-            .close_list(&mut self.ser.writer)
-            .map_err(Error::io)
+        self.ser.formatter.close_list(&mut self.ser.writer)?;
+        Ok(())
     }
 }
 
@@ -622,16 +599,13 @@ where
 {
     #[inline]
     fn serialize_head(&mut self, type_id: u8) -> Result<u8> {
-        self.ser
-            .formatter
-            .write_list_tag(
-                &mut self.ser.writer,
-                type_id,
-                self.len as i16,
-                self.ser.next_name.len() as i16,
-                self.ser.next_name.as_bytes(),
-            )
-            .map_err(Error::io)?;
+        self.ser.formatter.write_list_tag(
+            &mut self.ser.writer,
+            type_id,
+            self.len as i16,
+            self.ser.next_name.len() as i16,
+            self.ser.next_name.as_bytes(),
+        )?;
         Ok(type_id)
     }
 }
@@ -827,8 +801,8 @@ where
         self.verify_type(consts::TYPE_ID_BYTE)?;
         self.ser
             .formatter
-            .write_byte_inner(&mut self.ser.writer, value)
-            .map_err(Error::io)
+            .write_byte_inner(&mut self.ser.writer, value)?;
+        Ok(())
     }
 
     #[inline]
@@ -836,8 +810,8 @@ where
         self.verify_type(consts::TYPE_ID_SHORT)?;
         self.ser
             .formatter
-            .write_short_inner(&mut self.ser.writer, value)
-            .map_err(Error::io)
+            .write_short_inner(&mut self.ser.writer, value)?;
+        Ok(())
     }
 
     #[inline]
@@ -845,8 +819,8 @@ where
         self.verify_type(consts::TYPE_ID_INT)?;
         self.ser
             .formatter
-            .write_int_inner(&mut self.ser.writer, value)
-            .map_err(Error::io)
+            .write_int_inner(&mut self.ser.writer, value)?;
+        Ok(())
     }
 
     #[inline]
@@ -854,8 +828,8 @@ where
         self.verify_type(consts::TYPE_ID_LONG)?;
         self.ser
             .formatter
-            .write_long_inner(&mut self.ser.writer, value)
-            .map_err(Error::io)
+            .write_long_inner(&mut self.ser.writer, value)?;
+        Ok(())
     }
 
     #[inline]
@@ -863,8 +837,8 @@ where
         self.verify_type(consts::TYPE_ID_FLOAT)?;
         self.ser
             .formatter
-            .write_float_inner(&mut self.ser.writer, value)
-            .map_err(Error::io)
+            .write_float_inner(&mut self.ser.writer, value)?;
+        Ok(())
     }
 
     #[inline]
@@ -872,8 +846,8 @@ where
         self.verify_type(consts::TYPE_ID_DOUBLE)?;
         self.ser
             .formatter
-            .write_double_inner(&mut self.ser.writer, value)
-            .map_err(Error::io)
+            .write_double_inner(&mut self.ser.writer, value)?;
+        Ok(())
     }
 
     #[inline]
@@ -884,8 +858,8 @@ where
         let len = value.len_utf8() as i16;
         self.ser
             .formatter
-            .write_string_inner(&mut self.ser.writer, len, &buf)
-            .map_err(Error::io)
+            .write_string_inner(&mut self.ser.writer, len, &buf)?;
+        Ok(())
     }
 
     #[inline]
@@ -894,10 +868,12 @@ where
         if s.len() > i16::max_value() as usize {
             return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0));
         }
-        self.ser
-            .formatter
-            .write_string_inner(&mut self.ser.writer, s.len() as i16, s.as_bytes())
-            .map_err(Error::io)
+        self.ser.formatter.write_string_inner(
+            &mut self.ser.writer,
+            s.len() as i16,
+            s.as_bytes(),
+        )?;
+        Ok(())
     }
 
     #[inline]
@@ -918,8 +894,7 @@ where
         self.verify_type(consts::TYPE_ID_COMPOUND)?;
         self.ser
             .formatter
-            .write_compound_inner(&mut self.ser.writer)
-            .map_err(Error::io)?;
+            .write_compound_inner(&mut self.ser.writer)?;
         Ok(SerializeCompound { ser: self.ser })
     }
 
@@ -928,8 +903,7 @@ where
         self.verify_type(consts::TYPE_ID_COMPOUND)?;
         self.ser
             .formatter
-            .write_compound_inner(&mut self.ser.writer)
-            .map_err(Error::io)?;
+            .write_compound_inner(&mut self.ser.writer)?;
         Ok(SerializeCompound { ser: self.ser })
     }
 

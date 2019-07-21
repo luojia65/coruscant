@@ -13,10 +13,10 @@ pub use ser::to_gzip_writer;
 #[doc(inline)]
 pub use ser::to_zlib_writer;
 #[doc(inline)]
-pub use ser::{Serializer, to_string_transcript, to_vec, to_writer};
+pub use ser::{to_string_transcript, to_vec, to_writer, Serializer};
 
 #[doc(inline)]
-pub use de::{from_reader};
+pub use de::from_reader;
 
 #[doc(inline)]
 pub use value::{to_value, Value};
@@ -27,7 +27,7 @@ mod consts;
 pub mod de;
 pub mod error;
 mod map;
+mod read;
 pub mod root;
 pub mod ser;
 pub mod value;
-mod read;

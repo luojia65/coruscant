@@ -12,8 +12,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 struct ErrorImpl {
     code: ErrorCode,
-    line: usize, // line == 0: line and column is not necessary
-    column: usize,
+    index: usize, // index == 0: index is not necessary
 }
 
 pub(crate) enum ErrorCode {
@@ -25,22 +24,23 @@ pub(crate) enum ErrorCode {
     KeyMustBeAString,
     SequenceSizeUnknown,
     SequenceDifferentType,
+    InvalidBoolByte,
 }
 
 impl Error {
-    pub(crate) fn syntax(code: ErrorCode, line: usize, column: usize) -> Self {
-        Self::from_inner(code, line, column)
+    pub(crate) fn syntax(code: ErrorCode, index: usize) -> Self {
+        Self::from_inner(code, index)
     }
 
     pub(crate) fn io(error: io::Error) -> Self {
         let code = ErrorCode::Io(error);
-        Self::from_inner(code, 0, 0)
+        Self::from_inner(code, 0)
     }
 
     #[inline]
-    fn from_inner(code: ErrorCode, line: usize, column: usize) -> Self {
+    fn from_inner(code: ErrorCode, index: usize) -> Self {
         Error {
-            err: Box::new(ErrorImpl { code, line, column }),
+            err: Box::new(ErrorImpl { code, index }),
         }
     }
 }
@@ -48,14 +48,10 @@ impl Error {
 impl fmt::Debug for Error {
     // todo: improve error message format
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.err.line == 0 {
+        if self.err.index == 0 {
             fmt::Display::fmt(&self.err.code, f)
         } else {
-            write!(
-                f,
-                "{} at line {} column {}",
-                self.err.code, self.err.line, self.err.column
-            )
+            write!(f, "{} at index {}", self.err.code, self.err.index)
         }
     }
 }
@@ -68,15 +64,11 @@ impl fmt::Display for Error {
 
 impl fmt::Display for ErrorImpl {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.line == 0 {
+        if self.index == 0 {
             fmt::Display::fmt(&self.code, f)
         } else {
             // todo: improve message format
-            write!(
-                f,
-                "{} at line {} column {}",
-                self.code, self.line, self.column
-            )
+            write!(f, "{} at index {}", self.code, self.index)
         }
     }
 }
@@ -86,14 +78,15 @@ impl fmt::Display for ErrorCode {
         match &*self {
             ErrorCode::Message(ref msg) => f.write_str(msg),
             ErrorCode::Io(ref err) => fmt::Display::fmt(err, f),
-            ErrorCode::UnsupportedType => f.write_str("unsupported type"),
+            ErrorCode::UnsupportedType => f.write_str("unsupported nbt type"),
             ErrorCode::UnsupportedListInnerType => f.write_str("unsupported list-wrapped type"),
             ErrorCode::InvalidStringLength => f.write_str("invalid string length"),
             ErrorCode::KeyMustBeAString => f.write_str("key must be a string"),
             ErrorCode::SequenceSizeUnknown => f.write_str("size of sequence is unknown"),
             ErrorCode::SequenceDifferentType => {
                 f.write_str("elements of one sequence do not have the same type")
-            } // exhaustive
+            }
+            ErrorCode::InvalidBoolByte => f.write_str("invalid boolean byte"),
         }
     }
 }
@@ -104,7 +97,7 @@ impl ser::Error for Error {
     fn custom<T: fmt::Display>(msg: T) -> Error {
         let string = msg.to_string();
         let code = ErrorCode::Message(string.into_boxed_str());
-        Self::from_inner(code, 0, 0)
+        Self::from_inner(code, 0)
     }
 }
 
@@ -112,7 +105,7 @@ impl de::Error for Error {
     fn custom<T: fmt::Display>(msg: T) -> Error {
         let string = msg.to_string();
         let code = ErrorCode::Message(string.into_boxed_str());
-        Self::from_inner(code, 0, 0)
+        Self::from_inner(code, 0)
     }
 }
 

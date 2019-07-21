@@ -25,7 +25,7 @@ impl ser::Serialize for Value {
 pub struct Serializer;
 
 fn unsupported_type() -> Error {
-    Error::syntax(ErrorCode::UnsupportedType, 0, 0)
+    Error::syntax(ErrorCode::UnsupportedType, 0)
 }
 
 impl ser::Serializer for Serializer {

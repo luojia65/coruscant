@@ -122,12 +122,12 @@ impl<'a, W> Serializer<'a, W, TranscriptFormatter<'_>> {
 
 #[inline]
 fn unsupported_type() -> Error {
-    Error::syntax(ErrorCode::UnsupportedType, 0, 0)
+    Error::syntax(ErrorCode::UnsupportedType, 0)
 }
 
 #[inline]
 fn sequence_size_unknown() -> Error {
-    Error::syntax(ErrorCode::SequenceSizeUnknown, 0, 0)
+    Error::syntax(ErrorCode::SequenceSizeUnknown, 0)
 }
 
 impl<'a, 'b: 'a, W, F> ser::Serializer for &'a mut Serializer<'b, W, F>
@@ -241,7 +241,7 @@ where
     #[inline]
     fn serialize_str(self, s: &str) -> Result<()> {
         if s.len() > i16::max_value() as usize {
-            return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0));
+            return Err(Error::syntax(ErrorCode::InvalidStringLength, 0));
         }
         self.formatter.write_string_tag(
             &mut self.writer,
@@ -453,7 +453,7 @@ struct MapKeySerializer<'a, 'b, W, F> {
 
 #[inline]
 fn key_must_be_a_string() -> Error {
-    Error::syntax(ErrorCode::KeyMustBeAString, 0, 0)
+    Error::syntax(ErrorCode::KeyMustBeAString, 0)
 }
 
 impl<'a, 'b, W, F> ser::Serializer for MapKeySerializer<'a, 'b, W, F>
@@ -746,7 +746,7 @@ struct ListInnerSerializer<'a, 'b, W, F> {
 
 #[inline]
 fn sequence_different_type() -> Error {
-    Error::syntax(ErrorCode::SequenceDifferentType, 0, 0)
+    Error::syntax(ErrorCode::SequenceDifferentType, 0)
 }
 
 impl<W, F> ListInnerSerializer<'_, '_, W, F>
@@ -765,7 +765,7 @@ where
 
 #[inline]
 fn unsupported_list_inner_type() -> Error {
-    Error::syntax(ErrorCode::UnsupportedListInnerType, 0, 0)
+    Error::syntax(ErrorCode::UnsupportedListInnerType, 0)
 }
 
 impl<'a, 'b: 'a, W, F> ser::Serializer for ListInnerSerializer<'a, 'b, W, F>
@@ -866,7 +866,7 @@ where
     fn serialize_str(self, s: &str) -> Result<()> {
         self.verify_type(consts::TYPE_ID_STRING)?;
         if s.len() > i16::max_value() as usize {
-            return Err(Error::syntax(ErrorCode::InvalidStringLength, 0, 0));
+            return Err(Error::syntax(ErrorCode::InvalidStringLength, 0));
         }
         self.ser.formatter.write_string_inner(
             &mut self.ser.writer,

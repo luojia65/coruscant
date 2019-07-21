@@ -1,39 +1,41 @@
 use std::io;
 use serde::de;
 use crate::error::{Error, Result};
+use crate::read;
 
 use serde::forward_to_deserialize_any;
 
 
-pub fn from_reader<R, T>(reader: R) -> Result<T>
+pub fn from_reader<'de, R, T>(read: R) -> Result<T>
 where 
     R: io::Read,
     T: de::DeserializeOwned
 {
-    let mut de = Deserializer::new(reader);
+    let read = read::IoRead::new(read);
+    let mut de = Deserializer::new(read);
     T::deserialize(&mut de)
 }
 
 pub struct Deserializer<R> {
-    reader: R
+    read: R
 }
 
-impl<R> Deserializer<R> 
+impl<'de, R> Deserializer<R> 
 where 
-    R: io::Read
+    R: read::Read<'de>
 {
-    pub fn new(reader: R) -> Self {
-        Deserializer { reader }
+    pub fn new(read: R) -> Self {
+        Deserializer { read }
     }
 
     pub fn into_inner(self) -> R {
-        self.reader
+        self.read
     }
 }
 
 impl<'de, 'a, R> de::Deserializer<'de> for &'a mut Deserializer<R> 
 where
-    R: io::Read 
+    R: read::Read<'de>
 {
     type Error = Error;
 

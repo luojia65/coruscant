@@ -1,7 +1,11 @@
 use coruscant_nbt::to_string_transcript;
 use serde::Serialize;
 
+// there is a (probable) serde bug here!
+// https://github.com/serde-rs/serde/issues/1584 
+
 #[derive(Serialize)]
+#[serde(rename = "book")]
 struct Book {
     resolved: Option<i8>,
     #[serde(flatten)]

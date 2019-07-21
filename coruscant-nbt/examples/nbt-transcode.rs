@@ -1,8 +1,8 @@
 // 20 lines of code that converts your JSON string into NBT format.
 //
 // This piece of code performs the transcode through `serde_transcode` crate. 
-// It prints NBT transcript for human readbility using `Serializer::transcript`, 
-// If you want NBT bytes, consider using `Serializer::binary` instead.
+// It prints NBT transcript for human readbility using `Serializer::transcript`; 
+// if you want NBT bytes, consider using `Serializer::binary` instead.
 // 
 // Due to the loss of number accuracy in JSON, this program only support limited
 // input data type from JSON, for example objects and strings. However, if we do

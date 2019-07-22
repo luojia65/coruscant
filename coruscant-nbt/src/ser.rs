@@ -75,6 +75,21 @@ where
     Ok(unsafe { String::from_utf8_unchecked(ser.into_inner()) })
 }
 
+pub mod as_nbt_array {
+    use std::io;
+    use crate::Result;
+    use super::{Serializer, ArraySerializer, Formatter};
+
+    pub fn serialize<T, W, F>(value: &T, ser: &mut Serializer<W, F>) -> Result<()>
+    where
+        T: serde::Serialize,
+        W: io::Write,
+        F: Formatter,
+    {
+        value.serialize(ArraySerializer { ser })
+    }
+}
+
 // not in no_std circumstances
 pub struct Serializer<'a, W, F> {
     writer: W,
@@ -923,6 +938,39 @@ where
         T: ser::Serialize,
     {
         value.serialize(self)
+    }
+}
+
+struct ArraySerializer<'a, 'b, W, F> {
+    ser: &'a mut Serializer<'b, W, F>,
+}
+
+impl<'a, 'b: 'a, W, F> ser::Serializer for ArraySerializer<'a, 'b, W, F>
+where
+    W: io::Write,
+    F: Formatter,
+{
+    type Ok = ();
+    type Error = Error;
+
+    type SerializeSeq = Impossible<(), Error>;
+    type SerializeTuple = Impossible<(), Error>;
+    type SerializeTupleStruct = Impossible<(), Error>;
+    type SerializeTupleVariant = Impossible<(), Error>;
+    type SerializeMap = Impossible<(), Error>;
+    type SerializeStruct = Impossible<(), Error>;
+    type SerializeStructVariant = Impossible<(), Error>;
+
+    return_expr_for_serialized_types! {
+        Err(unimplemented!());
+        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes none some
+        newtype_variant unit unit_struct
+        tuple tuple_struct tuple_variant struct_variant map struct
+        str unit_variant newtype_struct
+    }
+
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
+        unimplemented!()
     }
 }
 

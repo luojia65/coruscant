@@ -31,3 +31,5 @@ mod read;
 pub mod root;
 pub mod ser;
 pub mod value;
+
+pub mod as_nbt_array;

@@ -1,6 +1,6 @@
 // ByteArray, IntArray and LongArray serialization
 use serde::Serialize;
-use coruscant_nbt::ser::as_nbt_array;
+use coruscant_nbt::as_nbt_array;
 
 #[derive(Serialize)]
 struct Wrap<'a> {
@@ -12,5 +12,5 @@ fn main() {
     let byte_array = &[1, 2, 3];
     let data = Wrap { byte_array };
     let out = coruscant_nbt::to_string_transcript(&data).unwrap();
-    println!("{}", out)
+    println!("{}", out);
 }

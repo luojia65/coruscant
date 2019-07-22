@@ -75,21 +75,6 @@ where
     Ok(unsafe { String::from_utf8_unchecked(ser.into_inner()) })
 }
 
-pub mod as_nbt_array {
-    use std::io;
-    use crate::Result;
-    use super::{Serializer, ArraySerializer, Formatter};
-
-    pub fn serialize<T, W, F>(value: &T, ser: &mut Serializer<W, F>) -> Result<()>
-    where
-        T: serde::Serialize,
-        W: io::Write,
-        F: Formatter,
-    {
-        value.serialize(ArraySerializer { ser })
-    }
-}
-
 // not in no_std circumstances
 pub struct Serializer<'a, W, F> {
     writer: W,
@@ -304,10 +289,13 @@ where
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<()>
+    fn serialize_newtype_struct<T: ?Sized>(self, name: &'static str, value: &T) -> Result<()>
     where
         T: ser::Serialize,
     {
+        if name == crate::as_nbt_array::TOKEN_AS_ARRAY {
+            return value.serialize(ArraySerializer { ser: self });
+        }  
         value.serialize(self)
     }
 
@@ -968,7 +956,7 @@ where
         tuple tuple_struct tuple_variant struct_variant map struct
         str unit_variant newtype_struct
     }
-
+    
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
         unimplemented!()
     }

@@ -2,7 +2,7 @@ use coruscant_nbt::to_string_transcript;
 use serde::Serialize;
 
 // there is a (probable) serde bug here!
-// https://github.com/serde-rs/serde/issues/1584 
+// https://github.com/serde-rs/serde/issues/1584
 
 #[derive(Serialize)]
 #[serde(rename = "book")]
@@ -20,10 +20,23 @@ struct Extra {
 }
 
 fn main() -> coruscant_nbt::Result<()> {
-    let b1 = Book { resolved: None, extra: None };
-    let b2 = Book { resolved: Some(1), extra: None };
-    let e1 = Extra { generation: 0, author: "luojia65", title: "hello" };
-    let b3 = Book { resolved: Some(1), extra: Some(e1) };
+    let b1 = Book {
+        resolved: None,
+        extra: None,
+    };
+    let b2 = Book {
+        resolved: Some(1),
+        extra: None,
+    };
+    let e1 = Extra {
+        generation: 0,
+        author: "luojia65",
+        title: "hello",
+    };
+    let b3 = Book {
+        resolved: Some(1),
+        extra: Some(e1),
+    };
 
     println!("== Unresolved: does not contain `resolved` key");
     println!("{}", to_string_transcript(&b1)?);

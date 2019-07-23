@@ -294,8 +294,9 @@ where
         T: ser::Serialize,
     {
         if name == crate::as_nbt_array::TOKEN_AS_ARRAY {
-            return value.serialize(ArraySerializer { ser: self });
-        }  
+            value.serialize(ArraySerializer { ser: self })?;
+            return Ok(());
+        }
         value.serialize(self)
     }
 
@@ -933,7 +934,191 @@ struct ArraySerializer<'a, 'b, W, F> {
     ser: &'a mut Serializer<'b, W, F>,
 }
 
+#[inline]
+fn unsupported_array_type() -> Error {
+    Error::syntax(ErrorCode::UnsupportedArrayType, 0)
+}
+
 impl<'a, 'b: 'a, W, F> ser::Serializer for ArraySerializer<'a, 'b, W, F>
+where
+    W: io::Write,
+    F: Formatter,
+{
+    type Ok = ();
+    type Error = Error;
+
+    type SerializeSeq = SerializeArray<'a, 'b, W, F>;
+    type SerializeTuple = Impossible<(), Error>;
+    type SerializeTupleStruct = Impossible<(), Error>;
+    type SerializeTupleVariant = Impossible<(), Error>;
+    type SerializeMap = Impossible<(), Error>;
+    type SerializeStruct = Impossible<(), Error>;
+    type SerializeStructVariant = Impossible<(), Error>;
+
+    return_expr_for_serialized_types! {
+        Err(unsupported_array_type());
+        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes none some
+        newtype_variant unit unit_struct
+        tuple tuple_struct tuple_variant struct_variant map struct
+        str unit_variant newtype_struct
+    }
+
+    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
+        if let Some(len) = len {
+            Ok(SerializeArray { len, ser: self.ser, type_id: None })
+        } else {
+            Err(sequence_size_unknown())
+        }
+    }
+}
+
+struct SerializeArray<'a, 'b, W, F> {
+    type_id: Option<u8>,
+    len: usize,
+    ser: &'a mut Serializer<'b, W, F>,
+}
+
+impl<'a, 'b, W, F> ser::SerializeSeq for SerializeArray<'a, 'b, W, F>
+where
+    W: io::Write,
+    F: Formatter,
+{
+    type Ok = ();
+    type Error = Error;
+
+    #[inline]
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    where
+        T: serde::Serialize,
+    {
+        if let Some(type_id) = self.type_id {
+            value.serialize(ArrayInnerSerializer {
+                type_id,
+                ser: self.ser,
+            })
+        } else {
+            let type_id = value.serialize(ArrayHeadSerializer {
+                len: self.len,
+                ser: self.ser,
+            })?;
+            self.type_id = Some(type_id);
+            value.serialize(ArrayInnerSerializer {
+                type_id,
+                ser: self.ser,
+            })
+        }
+    }
+
+    #[inline]
+    fn end(self) -> Result<Self::Ok> {
+        self.ser.formatter.close_array(&mut self.ser.writer)?;
+        Ok(())
+    }
+}
+
+struct ArrayHeadSerializer<'a, 'b, W, F> {
+    len: usize,
+    ser: &'a mut Serializer<'b, W, F>,
+}
+
+impl<W, F> ArrayHeadSerializer<'_, '_, W, F>
+where
+    W: io::Write,
+    F: Formatter,
+{
+    #[inline]
+    fn serialize_head(&mut self, type_id: u8) -> Result<u8> {
+        self.ser.formatter.write_array_head(
+            &mut self.ser.writer,
+            type_id,
+            self.len as i16,
+            self.ser.next_name.len() as i16,
+            self.ser.next_name.as_bytes(),
+        )?;
+        Ok(type_id)
+    }
+}
+
+impl<'a, 'b: 'a, W, F> ser::Serializer for ArrayHeadSerializer<'a, 'b, W, F>
+where
+    W: io::Write,
+    F: Formatter,
+{
+    type Ok = u8;
+    type Error = Error;
+
+    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
+
+    return_expr_for_serialized_types! {
+        Err(unsupported_list_inner_type());
+        bool i16 u8 u16 u32 u64 f32 f64 char str bytes
+        none some newtype_variant unit unit_struct unit_variant seq
+        map struct tuple tuple_struct tuple_variant struct_variant
+    }
+
+    #[inline]
+    fn serialize_i8(mut self, value: i8) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_BYTE_ARRAY)
+    }
+
+    #[inline]
+    fn serialize_i32(mut self, value: i32) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_INT_ARRAY)
+    }
+
+    #[inline]
+    fn serialize_i64(mut self, value: i64) -> Result<Self::Ok> {
+        let _ = value;
+        self.serialize_head(consts::TYPE_ID_LONG_ARRAY)
+    }
+
+    #[inline]
+    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<Self::Ok>
+    where
+        T: ser::Serialize,
+    {
+        value.serialize(self)
+    }
+}
+
+struct ArrayInnerSerializer<'a, 'b, W, F> {
+    type_id: u8,
+    ser: &'a mut Serializer<'b, W, F>,
+}
+
+#[inline]
+fn array_different_type() -> Error {
+    Error::syntax(ErrorCode::ArrayDifferentType, 0)
+}
+
+impl<W, F> ArrayInnerSerializer<'_, '_, W, F>
+where
+    W: io::Write,
+    F: Formatter,
+{
+    #[inline]
+    fn verify_type(&self, type_id: u8) -> Result<()> {
+        if type_id != self.type_id {
+            return Err(array_different_type());
+        }
+        Ok(())
+    }
+}
+
+#[inline]
+fn unsupported_array_inner_type() -> Error {
+    Error::syntax(ErrorCode::UnsupportedArrayInnerType, 0)
+}
+
+impl<'a, 'b: 'a, W, F> ser::Serializer for ArrayInnerSerializer<'a, 'b, W, F>
 where
     W: io::Write,
     F: Formatter,
@@ -945,20 +1130,50 @@ where
     type SerializeTuple = Impossible<(), Error>;
     type SerializeTupleStruct = Impossible<(), Error>;
     type SerializeTupleVariant = Impossible<(), Error>;
-    type SerializeMap = Impossible<(), Error>;
-    type SerializeStruct = Impossible<(), Error>;
+    type SerializeMap = SerializeCompound<'a, 'b, W, F>;
+    type SerializeStruct = SerializeCompound<'a, 'b, W, F>;
     type SerializeStructVariant = Impossible<(), Error>;
 
     return_expr_for_serialized_types! {
-        Err(unimplemented!());
-        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes none some
-        newtype_variant unit unit_struct
-        tuple tuple_struct tuple_variant struct_variant map struct
-        str unit_variant newtype_struct
+        Err(unsupported_array_inner_type());
+        bool u8 u16 u32 u64 i16 f32 f64 char str bytes none some
+        newtype_variant unit unit_struct unit_variant seq map struct 
+        tuple tuple_struct tuple_variant struct_variant
     }
-    
-    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
-        unimplemented!()
+
+    #[inline]
+    fn serialize_i8(self, value: i8) -> Result<()> {
+        self.verify_type(consts::TYPE_ID_BYTE_ARRAY)?;
+        self.ser
+            .formatter
+            .write_byte_inner(&mut self.ser.writer, value)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn serialize_i32(self, value: i32) -> Result<()> {
+        self.verify_type(consts::TYPE_ID_INT_ARRAY)?;
+        self.ser
+            .formatter
+            .write_int_inner(&mut self.ser.writer, value)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn serialize_i64(self, value: i64) -> Result<()> {
+        self.verify_type(consts::TYPE_ID_LONG_ARRAY)?;
+        self.ser
+            .formatter
+            .write_long_inner(&mut self.ser.writer, value)?;
+        Ok(())
+    }
+
+    #[inline]
+    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<()>
+    where
+        T: ser::Serialize,
+    {
+        value.serialize(self)
     }
 }
 
@@ -1194,6 +1409,33 @@ pub trait Formatter {
 
     #[inline]
     fn close_list<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
+    where
+        W: io::Write,
+    {
+        let _ = w;
+        Ok(())
+    }
+
+    #[inline]
+    fn write_array_head<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        type_id: u8,
+        len: i16,
+        name_len: i16,
+        name_bytes: &[u8],
+    ) -> io::Result<()>
+    where
+        W: io::Write,
+    {
+        w.write_u8(type_id)?;
+        w.write_i16::<BigEndian>(name_len)?;
+        w.write_all(name_bytes)?;
+        w.write_i16::<BigEndian>(len)
+    }
+
+    #[inline]
+    fn close_array<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
     where
         W: io::Write,
     {
@@ -1482,6 +1724,43 @@ impl Formatter for TranscriptFormatter<'_> {
         self.current_indent -= 1;
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "EndList")?;
+        Ok(())
+    }
+
+    #[inline]
+    fn write_array_head<W: ?Sized>(
+        &mut self,
+        w: &mut W,
+        type_id: u8,
+        len: i16,
+        name_len: i16,
+        name_bytes: &[u8],
+    ) -> io::Result<()>
+    where
+        W: io::Write,
+    {
+        let _ = name_len;
+        let name = String::from_utf8_lossy(name_bytes);
+        let (array_type, inner_type) = match type_id {
+            consts::TYPE_ID_BYTE_ARRAY => ("ByteArray", "Byte"),
+            consts::TYPE_ID_INT_ARRAY => ("IntArray", "Int"),
+            consts::TYPE_ID_LONG_ARRAY => ("LongArray", "Long"),
+            _ => panic!("wrong type_id parameter")
+        };
+        indent(w, self.current_indent, self.indent)?;
+        writeln!(w, "{} '{}': [{}; {}]", array_type, name, inner_type, len)?;
+        self.current_indent += 1;
+        Ok(())
+    }
+
+    #[inline]
+    fn close_array<W: ?Sized>(&mut self, w: &mut W) -> io::Result<()>
+    where
+        W: io::Write,
+    {
+        self.current_indent -= 1;
+        indent(w, self.current_indent, self.indent)?;
+        writeln!(w, "EndArray")?;
         Ok(())
     }
 

@@ -20,10 +20,13 @@ pub(crate) enum ErrorCode {
     Io(io::Error),
     UnsupportedType,
     UnsupportedListInnerType,
+    UnsupportedArrayType,
+    UnsupportedArrayInnerType,
     InvalidStringLength,
     KeyMustBeAString,
     SequenceSizeUnknown,
     SequenceDifferentType,
+    ArrayDifferentType,
     InvalidBoolByte,
 }
 
@@ -80,11 +83,18 @@ impl fmt::Display for ErrorCode {
             ErrorCode::Io(ref err) => fmt::Display::fmt(err, f),
             ErrorCode::UnsupportedType => f.write_str("unsupported nbt type"),
             ErrorCode::UnsupportedListInnerType => f.write_str("unsupported list-wrapped type"),
+            ErrorCode::UnsupportedArrayType => {
+                f.write_str("unsupported type for arrays; a sequence is required")
+            }
+            ErrorCode::UnsupportedArrayInnerType => f.write_str("unsupported array inner type"),
             ErrorCode::InvalidStringLength => f.write_str("invalid string length"),
             ErrorCode::KeyMustBeAString => f.write_str("key must be a string"),
             ErrorCode::SequenceSizeUnknown => f.write_str("size of sequence is unknown"),
             ErrorCode::SequenceDifferentType => {
                 f.write_str("elements of one sequence do not have the same type")
+            }
+            ErrorCode::ArrayDifferentType => {
+                f.write_str("elements of one array do not have the same type")
             }
             ErrorCode::InvalidBoolByte => f.write_str("invalid boolean byte"),
         }

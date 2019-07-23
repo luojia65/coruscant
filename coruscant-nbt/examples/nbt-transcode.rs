@@ -11,7 +11,7 @@
 
 fn main() {
     use std::io;
-    
+
     let str_input = r#"{"nick":"luojia65","school":{"name":"hust","985":true}}"#;
     let mut deserializer = serde_json::Deserializer::from_str(str_input);
     let mut serializer = coruscant_nbt::Serializer::transcript(io::stdout(), "person");

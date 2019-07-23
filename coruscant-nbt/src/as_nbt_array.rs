@@ -1,8 +1,7 @@
 use serde::Serialize;
 
 #[doc(hidden)]
-pub fn serialize<'a, T, S>(value: &T, serializer: S) 
-    -> core::result::Result<S::Ok, S::Error>
+pub fn serialize<'a, T, S>(value: &T, serializer: S) -> core::result::Result<S::Ok, S::Error>
 where
     T: serde::Serialize,
     S: serde::Serializer,

@@ -16,17 +16,20 @@ pub use ser::to_zlib_writer;
 pub use ser::{to_string_transcript, to_vec, to_writer, Serializer};
 
 #[doc(inline)]
-pub use de::from_reader;
+pub use de::{from_reader, Deserializer};
 
 #[doc(inline)]
 pub use value::{to_value, Value};
+
+#[doc(inline)]
+pub use map::Map;
 
 #[macro_use]
 mod macros;
 mod consts;
 pub mod de;
 pub mod error;
-mod map;
+pub mod map;
 mod read;
 pub mod root;
 pub mod ser;

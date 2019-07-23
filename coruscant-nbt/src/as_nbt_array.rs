@@ -12,6 +12,7 @@ where
 
 #[doc(hidden)]
 #[derive(serde::Serialize)]
+#[serde(rename = "$coruscant_nbt::private::__WrapAsArray")]
 pub struct __WrapAsArray<T>(pub T);
 
-pub(crate) const TOKEN_AS_ARRAY: &'static str = "__WrapAsArray";
+pub(crate) const TOKEN_AS_ARRAY: &'static str = "$coruscant_nbt::private::__WrapAsArray";

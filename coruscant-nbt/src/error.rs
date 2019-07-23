@@ -25,7 +25,7 @@ pub(crate) enum ErrorCode {
     InvalidStringLength,
     KeyMustBeAString,
     SequenceSizeUnknown,
-    SequenceDifferentType,
+    ListDifferentType,
     ArrayDifferentType,
     InvalidBoolByte,
 }
@@ -90,8 +90,8 @@ impl fmt::Display for ErrorCode {
             ErrorCode::InvalidStringLength => f.write_str("invalid string length"),
             ErrorCode::KeyMustBeAString => f.write_str("key must be a string"),
             ErrorCode::SequenceSizeUnknown => f.write_str("size of sequence is unknown"),
-            ErrorCode::SequenceDifferentType => {
-                f.write_str("elements of one sequence do not have the same type")
+            ErrorCode::ListDifferentType => {
+                f.write_str("elements of one list do not have the same type")
             }
             ErrorCode::ArrayDifferentType => {
                 f.write_str("elements of one array do not have the same type")

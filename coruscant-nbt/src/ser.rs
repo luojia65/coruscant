@@ -749,8 +749,8 @@ struct ListInnerSerializer<'a, 'b, W, F> {
 }
 
 #[inline]
-fn sequence_different_type() -> Error {
-    Error::syntax(ErrorCode::SequenceDifferentType, 0)
+fn list_different_type() -> Error {
+    Error::syntax(ErrorCode::ListDifferentType, 0)
 }
 
 impl<W, F> ListInnerSerializer<'_, '_, W, F>
@@ -761,7 +761,7 @@ where
     #[inline]
     fn verify_type(&self, type_id: u8) -> Result<()> {
         if type_id != self.type_id {
-            return Err(sequence_different_type());
+            return Err(list_different_type());
         }
         Ok(())
     }
@@ -965,7 +965,11 @@ where
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         if let Some(len) = len {
-            Ok(SerializeArray { len, ser: self.ser, type_id: None })
+            Ok(SerializeArray {
+                len,
+                ser: self.ser,
+                type_id: None,
+            })
         } else {
             Err(sequence_size_unknown())
         }
@@ -1137,7 +1141,7 @@ where
     return_expr_for_serialized_types! {
         Err(unsupported_array_inner_type());
         bool u8 u16 u32 u64 i16 f32 f64 char str bytes none some
-        newtype_variant unit unit_struct unit_variant seq map struct 
+        newtype_variant unit unit_struct unit_variant seq map struct
         tuple tuple_struct tuple_variant struct_variant
     }
 
@@ -1745,7 +1749,7 @@ impl Formatter for TranscriptFormatter<'_> {
             consts::TYPE_ID_BYTE_ARRAY => ("ByteArray", "Byte"),
             consts::TYPE_ID_INT_ARRAY => ("IntArray", "Int"),
             consts::TYPE_ID_LONG_ARRAY => ("LongArray", "Long"),
-            _ => panic!("wrong type_id parameter")
+            _ => panic!("wrong type_id parameter"),
         };
         indent(w, self.current_indent, self.indent)?;
         writeln!(w, "{} '{}': [{}; {}]", array_type, name, inner_type, len)?;

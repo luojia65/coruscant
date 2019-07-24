@@ -1,3 +1,4 @@
+//! The Value enum, a loosely typed way of representing any valid NBT value. 
 mod ser;
 
 use crate::error::Result;

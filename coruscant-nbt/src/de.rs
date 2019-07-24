@@ -238,8 +238,33 @@ where
         }
     }
 
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: de::Visitor<'de>
+    {
+        println!("str!");
+        if self.type_id != consts::TYPE_ID_STRING {
+            return Err(Error::mismatch_at(self.type_id, consts::TYPE_ID_STRING, self.outer.read.index()))
+        }
+        match self.outer.read.read_string_inner()? {
+            Cow::Borrowed(borrowed) => visitor.visit_borrowed_str(borrowed),
+            Cow::Owned(owned) => visitor.visit_str(&owned),
+        }
+    }
+
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: de::Visitor<'de>
+    {
+        if self.type_id != consts::TYPE_ID_STRING {
+            return Err(Error::mismatch_at(self.type_id, consts::TYPE_ID_STRING, self.outer.read.index()))
+        }
+        let owned = self.outer.read.read_string_inner()?.into_owned();
+        visitor.visit_string(owned)
+    }
+
     forward_to_deserialize_any! {
-        i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+        i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char
         bytes byte_buf option unit unit_struct newtype_struct seq tuple
         tuple_struct map struct enum identifier ignored_any
     }
@@ -251,6 +276,7 @@ where
     R: read::Read<'de>,
     V: de::Visitor<'de>,
 {
+    // no TYPE_ID_STRING here: they should be deserialized as borrowed for owned format
     match type_id {
         consts::TYPE_ID_BYTE => visitor.visit_i8(outer.read.read_byte_inner()?),
         consts::TYPE_ID_SHORT => visitor.visit_i16(outer.read.read_short_inner()?),
@@ -259,10 +285,6 @@ where
         consts::TYPE_ID_FLOAT => visitor.visit_f32(outer.read.read_float_inner()?),
         consts::TYPE_ID_DOUBLE => visitor.visit_f64(outer.read.read_double_inner()?),
         consts::TYPE_ID_BYTE_ARRAY => visitor.visit_seq(ListOrArrayAccess::byte_array(outer)?),
-        consts::TYPE_ID_STRING => match outer.read.read_string_inner()? {
-            Cow::Owned(v) => visitor.visit_string(v),
-            Cow::Borrowed(v) => visitor.visit_str(v),
-        },
         consts::TYPE_ID_LIST => visitor.visit_seq(ListOrArrayAccess::list(outer)?),
         consts::TYPE_ID_COMPOUND => visitor.visit_map(CompoundAccess::new(outer)),
         consts::TYPE_ID_INT_ARRAY => visitor.visit_seq(ListOrArrayAccess::int_array(outer)?),

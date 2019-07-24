@@ -8,10 +8,10 @@ pub use root::Root;
 
 #[cfg(feature = "gzip")]
 #[doc(inline)]
-pub use ser::to_gzip_writer;
+pub use {ser::to_gzip_writer, de::from_gzip_reader};
 #[cfg(feature = "zlib")]
 #[doc(inline)]
-pub use ser::to_zlib_writer;
+pub use {ser::to_zlib_writer, de::from_zlib_reader};
 #[doc(inline)]
 pub use ser::{to_string_transcript, to_vec, to_writer, Serializer};
 

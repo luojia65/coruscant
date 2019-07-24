@@ -5,6 +5,11 @@ use std::borrow::Cow;
 use serde::de;
 use std::io;
 
+#[cfg(feature = "gzip")]
+use flate2::read::GzDecoder;
+#[cfg(feature = "zlib")]
+use flate2::read::ZlibDecoder;
+
 use serde::forward_to_deserialize_any;
 
 pub fn from_reader<R, T>(read: R) -> Result<T>
@@ -12,6 +17,28 @@ where
     R: io::Read,
     T: de::DeserializeOwned,
 {
+    let mut de = Deserializer::io(read);
+    T::deserialize(&mut de)
+} 
+
+#[cfg(feature = "gzip")]
+pub fn from_gzip_reader<R, T>(read: R) -> Result<T>
+where
+    R: io::Read,
+    T: de::DeserializeOwned,
+{
+    let read = GzDecoder::new(read);
+    let mut de = Deserializer::io(read);
+    T::deserialize(&mut de)
+} 
+
+#[cfg(feature = "zlib")]
+pub fn from_zlib_reader<R, T>(read: R) -> Result<T>
+where
+    R: io::Read,
+    T: de::DeserializeOwned,
+{
+    let read = ZlibDecoder::new(read);
     let mut de = Deserializer::io(read);
     T::deserialize(&mut de)
 } 

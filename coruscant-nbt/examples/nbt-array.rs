@@ -8,9 +8,9 @@ struct Wrap<'a> {
     #[serde(with = "as_nbt_array")] // special attribute used, regard as ByteArray.
     byte_array: &'a [i8],
     #[serde(with = "as_nbt_array")] // same attribute, but for seq of i32 values,
-    int_array: &'a [i32],           // we serialize it as IntArray instead.
-    #[serde(with = "as_nbt_array")] 
-    long_array: &'a [i64],          // for the same reason, LongArray here.
+    int_array: &'a [i32], // we serialize it as IntArray instead.
+    #[serde(with = "as_nbt_array")]
+    long_array: &'a [i64], // for the same reason, LongArray here.
 }
 
 fn main() {
@@ -24,8 +24,7 @@ fn main() {
 
     // You may also use other to-functions. For human readability, this example
     // prints informal NBT transctiption for reference.
-    let out = coruscant_nbt::to_string_transcript(&data)
-        .expect("generate string transcript");
+    let out = coruscant_nbt::to_string_transcript(&data).expect("generate string transcript");
 
     // Should firstly print a ListTag of bytes, and secondly a special ByteArray.
     // IntArray and LongArray are also supported.

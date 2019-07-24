@@ -6,14 +6,14 @@ pub use error::{Error, Result};
 #[doc(inline)]
 pub use root::Root;
 
-#[cfg(feature = "gzip")]
-#[doc(inline)]
-pub use {ser::to_gzip_writer, de::from_gzip_reader};
-#[cfg(feature = "zlib")]
-#[doc(inline)]
-pub use {ser::to_zlib_writer, de::from_zlib_reader};
 #[doc(inline)]
 pub use ser::{to_string_transcript, to_vec, to_writer, Serializer};
+#[cfg(feature = "gzip")]
+#[doc(inline)]
+pub use {de::from_gzip_reader, ser::to_gzip_writer};
+#[cfg(feature = "zlib")]
+#[doc(inline)]
+pub use {de::from_zlib_reader, ser::to_zlib_writer};
 
 #[doc(inline)]
 pub use de::{from_reader, from_slice, Deserializer};

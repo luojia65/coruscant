@@ -4,6 +4,7 @@ use crate::error::Result;
 use crate::map::Map;
 use core::fmt;
 
+/// Represents any valid NBT value.
 #[derive(Clone, PartialEq)]
 pub enum Value {
     Byte(i8),
@@ -42,6 +43,8 @@ impl fmt::Debug for Value {
 // impl Default for Value {}
 // NBT does not have an null value
 
+/// Convert a T into `coruscant_nbt::Value` which is an enum that can represent
+/// any valid NBT data.
 pub fn to_value<T>(value: T) -> Result<Value>
 where
     T: serde::Serialize,

@@ -1,3 +1,5 @@
+//! Serialize a Rust structure into NBT data.
+
 use std::io;
 
 use crate::{
@@ -14,6 +16,18 @@ use flate2::write::GzEncoder;
 #[cfg(feature = "zlib")]
 use flate2::write::ZlibEncoder;
 
+/// Serialize the given data structure with root name as NBT into the `std::io`
+/// stream.
+///
+/// The optional NBT root name is wrapped into variable `root`. For the variable
+/// `root`, you may directly pass reference `&value` or value with root name like
+/// `("name", &value)`. See `root::Root` for detailed descriptions.
+///
+/// # Errors
+///
+/// Serialization can fail for various reasons, for example illegal NBT byte
+/// input, an underlying IO operation fails, or `T` contains a map with
+/// non-string keys.
 pub fn to_writer<'k, 'v, W, T, R>(writer: W, root: R) -> Result<()>
 where
     W: io::Write,
@@ -25,6 +39,18 @@ where
     value.serialize(&mut ser)
 }
 
+/// Serialize the given data structure with root name as NBT, compress it by
+/// GZip, then write into the `std::io` stream.
+///
+/// The optional NBT root name is wrapped into variable `root`. For the variable
+/// `root`, you may directly pass reference `&value` or value with root name like
+/// `("name", &value)`. See `root::Root` for detailed descriptions.
+///
+/// # Errors
+///
+/// Serialization can fail for various reasons, for example illegal NBT byte
+/// input, an underlying IO operation fails, or `T` contains a map with
+/// non-string keys.
 #[cfg(feature = "gzip")]
 pub fn to_gzip_writer<'k, 'v, W, T, R>(writer: W, root: R, compression: Compression) -> Result<()>
 where
@@ -38,6 +64,18 @@ where
     value.serialize(&mut ser)
 }
 
+/// Serialize the given data structure with root name as NBT, compress it by
+/// Zlib, then write into the `std::io` stream.
+///
+/// The optional NBT root name is wrapped into variable `root`. For the variable
+/// `root`, you may directly pass reference `&value` or value with root name like
+/// `("name", &value)`. See `root::Root` for detailed descriptions.
+///
+/// # Errors
+///
+/// Serialization can fail for various reasons, for example illegal NBT byte
+/// input, an underlying IO operation fails, or `T` contains a map with
+/// non-string keys.
 #[cfg(feature = "zlib")]
 pub fn to_zlib_writer<'k, 'v, W, T, R>(writer: W, root: R, compression: Compression) -> Result<()>
 where
@@ -51,6 +89,17 @@ where
     value.serialize(&mut ser)
 }
 
+/// Serialize the given data structure with root name as an NBT byte vector.
+///
+/// The optional NBT root name is wrapped into variable `root`. For the variable
+/// `root`, you may directly pass reference `&value` or value with root name like
+/// `("name", &value)`. See `root::Root` for detailed descriptions.
+///
+/// # Errors
+///
+/// Serialization can fail for various reasons, for example illegal NBT byte
+/// input, an underlying IO operation fails, or `T` contains a map with
+/// non-string keys.
 pub fn to_vec<'k, 'v, T, R>(root: R) -> Result<Vec<u8>>
 where
     T: 'v + Serialize + ?Sized,
@@ -63,6 +112,18 @@ where
     Ok(ser.into_inner())
 }
 
+/// Serialize the given data structure with root name as NBT string transcript
+/// into a `String`.
+///
+/// The optional NBT root name is wrapped into variable `root`. For the variable
+/// `root`, you may directly pass reference `&value` or value with root name like
+/// `("name", &value)`. See `root::Root` for detailed descriptions.
+///
+/// # Errors
+///
+/// Serialization can fail for various reasons, for example illegal NBT byte
+/// input, an underlying IO operation fails, or `T` contains a map with
+/// non-string keys.
 pub fn to_string_transcript<'k, 'v, T, R>(root: R) -> Result<String>
 where
     T: 'v + Serialize + ?Sized,
@@ -75,7 +136,7 @@ where
     Ok(unsafe { String::from_utf8_unchecked(ser.into_inner()) })
 }
 
-// not in no_std circumstances
+/// A structure that serializes Rust values into JSON.
 pub struct Serializer<'a, W, F> {
     writer: W,
     formatter: F,
@@ -90,6 +151,14 @@ enum State {
 }
 
 impl<'a, W, F> Serializer<'a, W, F> {
+    /// Creates a new NBT serializer whose output will be written to `writer`
+    /// with specific `formatter` given.
+    #[inline]
+    pub fn with_formatter(writer: W, formatter: F, root_name: &'a str) -> Self {
+        Self::new(writer, formatter, root_name)
+    }
+
+    /// Unwrap the `Writer` from the `Serializer`.
     #[inline]
     pub fn into_inner(self) -> W {
         self.writer
@@ -107,6 +176,7 @@ impl<'a, W, F> Serializer<'a, W, F> {
 }
 
 impl<'a, W> Serializer<'a, W, BinaryFormatter> {
+    /// Creates a new NBT binary serializer.
     #[inline]
     pub fn binary(writer: W, root_name: &'a str) -> Self {
         Self::new(writer, BinaryFormatter, root_name)
@@ -114,6 +184,7 @@ impl<'a, W> Serializer<'a, W, BinaryFormatter> {
 }
 
 impl<'a, W> Serializer<'a, W, TranscriptFormatter<'_>> {
+    /// Creates a new NBT transcript serializer.
     #[inline]
     pub fn transcript(writer: W, root_name: &'a str) -> Self {
         Self::new(writer, TranscriptFormatter::new(), root_name)

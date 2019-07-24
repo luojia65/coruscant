@@ -1,8 +1,10 @@
+//! Deserialize NBT data to a Rust data structure.
+
 use crate::consts;
 use crate::error::{Error, Result};
 use crate::read;
-use std::borrow::Cow;
 use serde::de;
+use std::borrow::Cow;
 use std::io;
 
 #[cfg(feature = "gzip")]
@@ -12,6 +14,7 @@ use flate2::read::ZlibDecoder;
 
 use serde::forward_to_deserialize_any;
 
+/// Deserialize an instance of type `T` from an IO stream of NBT. 
 pub fn from_reader<R, T>(read: R) -> Result<T>
 where
     R: io::Read,
@@ -19,8 +22,9 @@ where
 {
     let mut de = Deserializer::io(read);
     T::deserialize(&mut de)
-} 
+}
 
+/// Deserialize an instance of type `T` from a GZip compressed IO stream of NBT. 
 #[cfg(feature = "gzip")]
 pub fn from_gzip_reader<R, T>(read: R) -> Result<T>
 where
@@ -30,8 +34,9 @@ where
     let read = GzDecoder::new(read);
     let mut de = Deserializer::io(read);
     T::deserialize(&mut de)
-} 
+}
 
+/// Deserialize an instance of type `T` from a Zlib compressed IO stream of NBT. 
 #[cfg(feature = "zlib")]
 pub fn from_zlib_reader<R, T>(read: R) -> Result<T>
 where
@@ -41,16 +46,18 @@ where
     let read = ZlibDecoder::new(read);
     let mut de = Deserializer::io(read);
     T::deserialize(&mut de)
-} 
+}
 
+/// Deserialize an instance of type `T` from an NBT byte slice. 
 pub fn from_slice<'a, T>(slice: &'a [u8]) -> Result<T>
 where
     T: de::Deserialize<'a>,
 {
     let mut de = Deserializer::slice(slice);
     T::deserialize(&mut de)
-} 
+}
 
+/// A struct that deserializes NBT into Rust values.
 pub struct Deserializer<R> {
     read: R,
 }
@@ -59,20 +66,28 @@ impl<R> Deserializer<read::IoRead<R>>
 where
     R: io::Read,
 {
+    /// Create a NBT deserializer from an `io::Read`. 
     pub fn io(read: R) -> Self {
-        Deserializer { read: read::IoRead::new(read) }
+        Deserializer {
+            read: read::IoRead::new(read),
+        }
     }
 
+    /// Unwrap `io::Read` from the NBT deserializer.
     pub fn into_inner(self) -> R {
         self.read.into_inner()
     }
 }
 
-impl<'a> Deserializer<read::SliceRead<'a>>{
+impl<'a> Deserializer<read::SliceRead<'a>> {
+    /// Create a NBT deserializer from a `&[u8]`.
     pub fn slice(slice: &'a [u8]) -> Self {
-        Deserializer { read: read::SliceRead::new(slice) }
+        Deserializer {
+            read: read::SliceRead::new(slice),
+        }
     }
 
+    /// Unwrap `&[u8]` from the NBT deserializer.
     pub fn into_inner(self) -> &'a [u8] {
         self.read.into_inner()
     }
@@ -110,19 +125,22 @@ struct CompoundAccess<'a, R> {
 
 impl<'a, R> CompoundAccess<'a, R> {
     fn new(outer: &'a mut Deserializer<R>) -> Self {
-        Self { type_id: None, outer }
+        Self {
+            type_id: None,
+            outer,
+        }
     }
 }
 
-impl<'de, 'a, R> de::MapAccess<'de> for CompoundAccess<'a, R> 
+impl<'de, 'a, R> de::MapAccess<'de> for CompoundAccess<'a, R>
 where
-    R: read::Read<'de>
+    R: read::Read<'de>,
 {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
-    where 
-        K: de::DeserializeSeed<'de>
+    where
+        K: de::DeserializeSeed<'de>,
     {
         let type_id = self.outer.read.read_type_id()?;
         if type_id == consts::TYPE_ID_END {
@@ -134,16 +152,16 @@ where
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
-    where 
-        V: de::DeserializeSeed<'de>
+    where
+        V: de::DeserializeSeed<'de>,
     {
         let type_id = match self.type_id {
             Some(type_id) => type_id,
-            None => panic!("call next_value_seed before next_key_seed")
+            None => panic!("call next_value_seed before next_key_seed"),
         };
-        let value = seed.deserialize(InnerDeserializer { 
+        let value = seed.deserialize(InnerDeserializer {
             outer: self.outer,
-            type_id
+            type_id,
         })?;
         Ok(value)
     }
@@ -156,48 +174,68 @@ struct ListOrArrayAccess<'a, R> {
     outer: &'a mut Deserializer<R>,
 }
 
-impl<'de, 'a, R> ListOrArrayAccess<'a, R> 
+impl<'de, 'a, R> ListOrArrayAccess<'a, R>
 where
-    R: read::Read<'de>
+    R: read::Read<'de>,
 {
     fn list(outer: &'a mut Deserializer<R>) -> Result<Self> {
         let type_id = outer.read.read_type_id()?;
         let total_len = outer.read.read_length()?;
-        Ok(Self { type_id, cur_len: 0, total_len, outer })
+        Ok(Self {
+            type_id,
+            cur_len: 0,
+            total_len,
+            outer,
+        })
     }
 
     fn byte_array(outer: &'a mut Deserializer<R>) -> Result<Self> {
         let total_len = outer.read.read_length()?;
-        Ok(Self { type_id: consts::TYPE_ID_BYTE, cur_len: 0, total_len, outer })
+        Ok(Self {
+            type_id: consts::TYPE_ID_BYTE,
+            cur_len: 0,
+            total_len,
+            outer,
+        })
     }
 
     fn int_array(outer: &'a mut Deserializer<R>) -> Result<Self> {
         let total_len = outer.read.read_length()?;
-        Ok(Self { type_id: consts::TYPE_ID_INT, cur_len: 0, total_len, outer })
+        Ok(Self {
+            type_id: consts::TYPE_ID_INT,
+            cur_len: 0,
+            total_len,
+            outer,
+        })
     }
 
     fn long_array(outer: &'a mut Deserializer<R>) -> Result<Self> {
         let total_len = outer.read.read_length()?;
-        Ok(Self { type_id: consts::TYPE_ID_LONG, cur_len: 0, total_len, outer })
+        Ok(Self {
+            type_id: consts::TYPE_ID_LONG,
+            cur_len: 0,
+            total_len,
+            outer,
+        })
     }
 }
 
-impl<'de, 'a, R> de::SeqAccess<'de> for ListOrArrayAccess<'a, R> 
+impl<'de, 'a, R> de::SeqAccess<'de> for ListOrArrayAccess<'a, R>
 where
-    R: read::Read<'de>
+    R: read::Read<'de>,
 {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
     where
-        T: de::DeserializeSeed<'de> 
+        T: de::DeserializeSeed<'de>,
     {
         if self.cur_len == self.total_len {
             return Ok(None);
         }
         let value = seed.deserialize(InnerDeserializer {
             outer: self.outer,
-            type_id: self.type_id
+            type_id: self.type_id,
         })?;
         self.cur_len += 1;
         Ok(Some(value))
@@ -247,7 +285,7 @@ where
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
-    {   
+    {
         proc_deserialize_value(visitor, self.type_id, self.outer)
     }
 
@@ -256,7 +294,11 @@ where
         V: de::Visitor<'de>,
     {
         if self.type_id != consts::TYPE_ID_BYTE {
-            return Err(Error::mismatch_at(self.type_id, consts::TYPE_ID_BYTE, self.outer.read.index()))
+            return Err(Error::mismatch_at(
+                self.type_id,
+                consts::TYPE_ID_BYTE,
+                self.outer.read.index(),
+            ));
         }
         match self.outer.read.read_byte_inner()? {
             1 => visitor.visit_bool(true),
@@ -267,10 +309,14 @@ where
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: de::Visitor<'de>
+        V: de::Visitor<'de>,
     {
         if self.type_id != consts::TYPE_ID_STRING {
-            return Err(Error::mismatch_at(self.type_id, consts::TYPE_ID_STRING, self.outer.read.index()))
+            return Err(Error::mismatch_at(
+                self.type_id,
+                consts::TYPE_ID_STRING,
+                self.outer.read.index(),
+            ));
         }
         match self.outer.read.read_string_inner()? {
             Cow::Borrowed(borrowed) => visitor.visit_borrowed_str(borrowed),
@@ -280,10 +326,14 @@ where
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: de::Visitor<'de>
+        V: de::Visitor<'de>,
     {
         if self.type_id != consts::TYPE_ID_STRING {
-            return Err(Error::mismatch_at(self.type_id, consts::TYPE_ID_STRING, self.outer.read.index()))
+            return Err(Error::mismatch_at(
+                self.type_id,
+                consts::TYPE_ID_STRING,
+                self.outer.read.index(),
+            ));
         }
         let owned = self.outer.read.read_string_inner()?.into_owned();
         visitor.visit_string(owned)
@@ -297,8 +347,12 @@ where
 }
 
 #[inline]
-fn proc_deserialize_value<'de, 'a, R, V>(visitor: V, type_id: u8, outer: &'a mut Deserializer<R>) -> Result<V::Value> 
-where 
+fn proc_deserialize_value<'de, 'a, R, V>(
+    visitor: V,
+    type_id: u8,
+    outer: &'a mut Deserializer<R>,
+) -> Result<V::Value>
+where
     R: read::Read<'de>,
     V: de::Visitor<'de>,
 {
@@ -315,6 +369,6 @@ where
         consts::TYPE_ID_COMPOUND => visitor.visit_map(CompoundAccess::new(outer)),
         consts::TYPE_ID_INT_ARRAY => visitor.visit_seq(ListOrArrayAccess::int_array(outer)?),
         consts::TYPE_ID_LONG_ARRAY => visitor.visit_seq(ListOrArrayAccess::long_array(outer)?),
-        invalid => Err(Error::invalid_id_at(invalid, outer.read.index()))
+        invalid => Err(Error::invalid_id_at(invalid, outer.read.index())),
     }
-} 
+}

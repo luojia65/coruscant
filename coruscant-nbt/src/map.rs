@@ -1,3 +1,5 @@
+//! A map of `String` to `coruscant_nbt::Value`.
+
 use core::borrow::Borrow;
 use core::fmt;
 use core::ops;
@@ -7,6 +9,7 @@ use std::hash::Hash;
 use crate::value::Value;
 use serde::ser;
 
+/// Represents a NBT key/value type.
 #[derive(Clone, PartialEq)]
 pub struct Map<K, V> {
     map: MapImpl<K, V>,
@@ -15,6 +18,7 @@ pub struct Map<K, V> {
 type MapImpl<K, V> = BTreeMap<K, V>;
 
 impl Map<String, Value> {
+    /// Makes a new empty Map.
     #[inline]
     pub fn new() -> Self {
         Map {
@@ -22,6 +26,7 @@ impl Map<String, Value> {
         }
     }
 
+    /// Makes a new empty Map with the given initial capacity.
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         let _ = capacity; // not supported by BTreeMap

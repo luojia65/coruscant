@@ -2,8 +2,8 @@
 extern crate test;
 use test::Bencher;
 
-use coruscant_nbt::{to_gzip_writer, to_writer, to_vec, from_slice, Compression};
-use serde::{Serialize, Deserialize};
+use coruscant_nbt::{from_slice, to_gzip_writer, to_vec, to_writer, Compression};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize)]

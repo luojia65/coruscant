@@ -1,13 +1,17 @@
+//! When serializing or deserializing NBT goes wrong.
+
 use core::fmt;
 use std::io;
 
 use serde::{de, ser};
 
-// derive nothing here by now
+/// This type represents all possible errors that can occur when serializing or
+/// deserializing NBT data.
 pub struct Error {
     err: Box<ErrorImpl>,
 }
 
+/// Alias for a `Result` with the error type `coruscant_nbt::Error`.
 pub type Result<T> = core::result::Result<T, Error>;
 
 struct ErrorImpl {
@@ -59,12 +63,12 @@ impl Error {
         let code = ErrorCode::TypeIdMismatch(mismatch, expected);
         Self::from_inner(code, index)
     }
-    
+
     pub(crate) fn invalid_id_at(invalid_id: u8, index: usize) -> Self {
         let code = ErrorCode::TypeIdInvalid(invalid_id);
         Self::from_inner(code, index)
     }
-    
+
     pub(crate) fn bool_at(invalid: i8, index: usize) -> Self {
         let code = ErrorCode::InvalidBoolByte(invalid);
         Self::from_inner(code, index)
@@ -136,19 +140,26 @@ impl fmt::Display for ErrorCode {
             ErrorCode::ArrayDifferentType => {
                 f.write_str("elements of one NBT array do not have the same type")
             }
-            ErrorCode::InvalidBoolByte(invalid) => 
-                f.write_fmt(format_args!("invalid NBT boolean byte {} (0x{:02X}), 0 or 1 expected"
-                    , invalid, invalid)),
+            ErrorCode::InvalidBoolByte(invalid) => f.write_fmt(format_args!(
+                "invalid NBT boolean byte {} (0x{:02X}), 0 or 1 expected",
+                invalid, invalid
+            )),
             ErrorCode::InvalidUtf8String => f.write_str("invalid utf-8 NBT string"),
-            ErrorCode::TypeIdMismatch(invalid, expected) => 
-                f.write_fmt(format_args!("mismatched NBT type id {} (0x{:02X}), expected {} (0x{:02X})"
-                    , invalid, invalid, expected, expected)),
-            ErrorCode::TypeIdInvalid(invalid) => 
-                f.write_fmt(format_args!("invalid type id {} (0x{:02X})", invalid, invalid)),
-            ErrorCode::InvalidLength(invalid) => 
-                f.write_fmt(format_args!("invalid length {} (0x{:04X}); length must be positive for NBT"
-                    , invalid, invalid)),
-            ErrorCode::SliceUnexpectedEof => f.write_str("unexpected EOF when reading NBT source slice"),
+            ErrorCode::TypeIdMismatch(invalid, expected) => f.write_fmt(format_args!(
+                "mismatched NBT type id {} (0x{:02X}), expected {} (0x{:02X})",
+                invalid, invalid, expected, expected
+            )),
+            ErrorCode::TypeIdInvalid(invalid) => f.write_fmt(format_args!(
+                "invalid type id {} (0x{:02X})",
+                invalid, invalid
+            )),
+            ErrorCode::InvalidLength(invalid) => f.write_fmt(format_args!(
+                "invalid length {} (0x{:04X}); length must be positive for NBT",
+                invalid, invalid
+            )),
+            ErrorCode::SliceUnexpectedEof => {
+                f.write_str("unexpected EOF when reading NBT source slice")
+            }
         }
     }
 }

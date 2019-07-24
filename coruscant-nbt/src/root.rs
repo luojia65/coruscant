@@ -1,3 +1,7 @@
+//! Key-Value pair of NBT data and its root name.
+
+/// Pair root name and NBT value together, used in parameters for convenience
+/// of `From` and `Into`.
 pub struct Root<'k, 'v, T: ?Sized> {
     pub root_name: &'k str,
     pub value: &'v T,

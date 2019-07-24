@@ -1,4 +1,4 @@
-use coruscant_nbt::{from_slice, from_reader, to_vec, Result};
+use coruscant_nbt::{from_reader, from_slice, to_vec, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

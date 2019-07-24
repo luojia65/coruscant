@@ -10,7 +10,7 @@ use coruscant_nbt::{from_reader, to_vec, Result};
 fn main() -> Result<()> {
     let vec = to_vec(&127i8)?;
     println!("{:?}", vec);
-    let ans: bool = from_reader(std::io::Cursor::new(vec))?;
-    println!("{}", ans);
+    let (name, ans): (_, bool) = from_reader(std::io::Cursor::new(vec))?;
+    println!("{} {}", name, ans);
     Ok(())
 }

@@ -32,6 +32,7 @@ pub(crate) enum ErrorCode {
     TypeIdMismatch(u8, u8),
     TypeIdInvalid(u8),
     InvalidLength(i16),
+    SliceUnexpectedEof,
 }
 
 impl Error {
@@ -72,6 +73,11 @@ impl Error {
     pub(crate) fn invalid_len_at(invalid: i16, index: usize) -> Self {
         let code = ErrorCode::InvalidLength(invalid);
         Self::from_inner(code, index)
+    }
+
+    pub(crate) fn slice_eof() -> Self {
+        let code = ErrorCode::SliceUnexpectedEof;
+        Self::from_inner(code, 0)
     }
 
     #[inline]
@@ -142,6 +148,7 @@ impl fmt::Display for ErrorCode {
             ErrorCode::InvalidLength(invalid) => 
                 f.write_fmt(format_args!("invalid length {} (0x{:04X}); length must be positive for NBT"
                     , invalid, invalid)),
+            ErrorCode::SliceUnexpectedEof => f.write_str("unexpected EOF when reading source slice"),
         }
     }
 }

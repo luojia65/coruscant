@@ -33,9 +33,10 @@ pub struct IoRead<R> {
     index: usize,
 }
 
-// pub struct SliceRead<'a> {
-//     slice: &'a [u8]
-// }
+pub struct SliceRead<'a> {
+    inner: &'a [u8],
+    index: usize,
+}
 
 ///////////////////////////////////////////////////////////////
 
@@ -137,10 +138,130 @@ where
 
 ///////////////////////////////////////////////////////////////
 
-// impl<'a> SliceRead<'a> {
-//     pub fn new(slice: &'a [u8]) -> Self {
-//         SliceRead { slice }
-//     }
-// }
+impl<'a> SliceRead<'a> {
+    pub fn new(slice: &'a [u8]) -> Self {
+        SliceRead { inner: slice, index: 0 }
+    }
 
-// impl<'a> Read<'a> for SliceRead<'a> {}
+    pub fn into_inner(self) -> &'a [u8] {
+        self.inner
+    }
+
+    #[inline]
+    fn check_eof(&self, remain_at_least: usize) -> Result<()> {
+        if self.index == self.inner.len() - remain_at_least {
+            return Err(Error::slice_eof())
+        }
+        Ok(())
+    }
+}
+
+// todo: enhance transmutions
+
+impl<'a> Read<'a> for SliceRead<'a> {
+    fn index(&self) -> usize {
+        self.index
+    }
+    
+    fn read_type_id(&mut self) -> Result<u8> {
+        self.check_eof(size_of::<u8>())?;
+        let value = self.inner[self.index];
+        self.index += size_of::<u8>();
+        Ok(value)
+    }
+
+    fn read_name(&mut self) -> Result<Cow<'a, str>> {
+        self.read_string_inner()
+    }
+
+    fn read_length(&mut self) -> Result<i16> {
+        self.read_short_inner()
+    }
+
+    fn read_byte_inner(&mut self) -> Result<i8>  {
+        self.check_eof(size_of::<i8>())?;
+        let value = i8::from_be_bytes([
+            self.inner[self.index]
+        ]);
+        self.index += size_of::<i8>();
+        Ok(value)
+    }
+
+    fn read_short_inner(&mut self) -> Result<i16> {
+        self.check_eof(size_of::<i16>())?;
+        let value = i16::from_be_bytes([
+            self.inner[self.index], 
+            self.inner[self.index + 1]
+        ]);
+        self.index += size_of::<i16>();
+        Ok(value)
+    }
+
+    fn read_int_inner(&mut self) -> Result<i32> {
+        self.check_eof(size_of::<i32>())?;
+        let value = i32::from_be_bytes([
+            self.inner[self.index], 
+            self.inner[self.index + 1],
+            self.inner[self.index + 2],
+            self.inner[self.index + 3],
+        ]);
+        self.index += size_of::<i32>();
+        Ok(value)
+    }
+
+    fn read_long_inner(&mut self) -> Result<i64> {
+        self.check_eof(size_of::<i64>())?;
+        let value = i64::from_be_bytes([
+            self.inner[self.index], 
+            self.inner[self.index + 1],
+            self.inner[self.index + 2],
+            self.inner[self.index + 3],
+            self.inner[self.index + 4],
+            self.inner[self.index + 5],
+            self.inner[self.index + 6],
+            self.inner[self.index + 7],
+        ]);
+        self.index += size_of::<i64>();
+        Ok(value)
+    }
+
+    fn read_float_inner(&mut self) -> Result<f32> {
+        self.check_eof(size_of::<f32>())?;
+        let value = u32::from_be_bytes([
+            self.inner[self.index], 
+            self.inner[self.index + 1],
+            self.inner[self.index + 2],
+            self.inner[self.index + 3],
+        ]);
+        self.index += size_of::<f32>();
+        Ok(f32::from_bits(value))
+    }
+
+    fn read_double_inner(&mut self) -> Result<f64> {
+        self.check_eof(size_of::<f64>())?;
+        let value = u64::from_be_bytes([
+            self.inner[self.index], 
+            self.inner[self.index + 1],
+            self.inner[self.index + 2],
+            self.inner[self.index + 3],
+            self.inner[self.index + 4],
+            self.inner[self.index + 5],
+            self.inner[self.index + 6],
+            self.inner[self.index + 7],
+        ]);
+        self.index += size_of::<f64>();
+        Ok(f64::from_bits(value))
+    }
+
+    fn read_string_inner(&mut self) -> Result<Cow<'a, str>> {
+        let len = self.read_length()?;
+        if len < 0 {
+            return Err(Error::invalid_len_at(len, self.index))
+        }
+        let len = len as usize;
+        let slice = &self.inner[self.index..(self.index + len)];
+        let borrowed = std::str::from_utf8(slice)
+            .map_err(|_| Error::utf8_at(self.index))?;
+        Ok(Cow::Borrowed(borrowed))
+    }
+}

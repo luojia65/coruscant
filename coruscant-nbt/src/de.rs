@@ -7,12 +7,20 @@ use std::io;
 
 use serde::forward_to_deserialize_any;
 
-pub fn from_reader<'de, R, T>(read: R) -> Result<T>
+pub fn from_reader<R, T>(read: R) -> Result<T>
 where
     R: io::Read,
     T: de::DeserializeOwned,
 {
-    let mut de = Deserializer::new(read);
+    let mut de = Deserializer::io(read);
+    T::deserialize(&mut de)
+} 
+
+pub fn from_slice<'a, T>(slice: &'a [u8]) -> Result<T>
+where
+    T: de::Deserialize<'a>,
+{
+    let mut de = Deserializer::slice(slice);
     T::deserialize(&mut de)
 } 
 
@@ -20,15 +28,25 @@ pub struct Deserializer<R> {
     read: R,
 }
 
-impl<'de, R> Deserializer<read::IoRead<R>>
+impl<R> Deserializer<read::IoRead<R>>
 where
     R: io::Read,
 {
-    pub fn new(read: R) -> Self {
+    pub fn io(read: R) -> Self {
         Deserializer { read: read::IoRead::new(read) }
     }
 
     pub fn into_inner(self) -> R {
+        self.read.into_inner()
+    }
+}
+
+impl<'a> Deserializer<read::SliceRead<'a>>{
+    pub fn slice(slice: &'a [u8]) -> Self {
+        Deserializer { read: read::SliceRead::new(slice) }
+    }
+
+    pub fn into_inner(self) -> &'a [u8] {
         self.read.into_inner()
     }
 }

@@ -242,7 +242,6 @@ where
     where
         V: de::Visitor<'de>
     {
-        println!("str!");
         if self.type_id != consts::TYPE_ID_STRING {
             return Err(Error::mismatch_at(self.type_id, consts::TYPE_ID_STRING, self.outer.read.index()))
         }

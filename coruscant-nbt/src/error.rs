@@ -121,34 +121,34 @@ impl fmt::Display for ErrorCode {
         match &*self {
             ErrorCode::Message(ref msg) => f.write_str(msg),
             ErrorCode::Io(ref err) => fmt::Display::fmt(err, f),
-            ErrorCode::UnsupportedType => f.write_str("unsupported nbt type"),
-            ErrorCode::UnsupportedListInnerType => f.write_str("unsupported list-wrapped type"),
+            ErrorCode::UnsupportedType => f.write_str("unsupported NBT type"),
+            ErrorCode::UnsupportedListInnerType => f.write_str("unsupported NBT list-wrapped type"),
             ErrorCode::UnsupportedArrayType => {
-                f.write_str("unsupported type for arrays; a sequence is required")
+                f.write_str("unsupported type for NBT arrays; a sequence is required")
             }
-            ErrorCode::UnsupportedArrayInnerType => f.write_str("unsupported array inner type"),
-            ErrorCode::InvalidStringLength => f.write_str("invalid string length"),
-            ErrorCode::KeyMustBeAString => f.write_str("key must be a string"),
-            ErrorCode::SequenceSizeUnknown => f.write_str("size of sequence is unknown"),
+            ErrorCode::UnsupportedArrayInnerType => f.write_str("unsupported NBT array inner type"),
+            ErrorCode::InvalidStringLength => f.write_str("invalid NBT string length"),
+            ErrorCode::KeyMustBeAString => f.write_str("NBT key must be a string"),
+            ErrorCode::SequenceSizeUnknown => f.write_str("size of NBT sequence is unknown"),
             ErrorCode::ListDifferentType => {
-                f.write_str("elements of one list do not have the same type")
+                f.write_str("elements of one NBT list do not have the same type")
             }
             ErrorCode::ArrayDifferentType => {
-                f.write_str("elements of one array do not have the same type")
+                f.write_str("elements of one NBT array do not have the same type")
             }
             ErrorCode::InvalidBoolByte(invalid) => 
-                f.write_fmt(format_args!("invalid boolean byte {} (0x{:02X}), 0 or 1 expected"
+                f.write_fmt(format_args!("invalid NBT boolean byte {} (0x{:02X}), 0 or 1 expected"
                     , invalid, invalid)),
-            ErrorCode::InvalidUtf8String => f.write_str("invalid utf-8 string"),
+            ErrorCode::InvalidUtf8String => f.write_str("invalid utf-8 NBT string"),
             ErrorCode::TypeIdMismatch(invalid, expected) => 
-                f.write_fmt(format_args!("mismatched type id {} (0x{:02X}), expected {} (0x{:02X})"
+                f.write_fmt(format_args!("mismatched NBT type id {} (0x{:02X}), expected {} (0x{:02X})"
                     , invalid, invalid, expected, expected)),
             ErrorCode::TypeIdInvalid(invalid) => 
                 f.write_fmt(format_args!("invalid type id {} (0x{:02X})", invalid, invalid)),
             ErrorCode::InvalidLength(invalid) => 
                 f.write_fmt(format_args!("invalid length {} (0x{:04X}); length must be positive for NBT"
                     , invalid, invalid)),
-            ErrorCode::SliceUnexpectedEof => f.write_str("unexpected EOF when reading source slice"),
+            ErrorCode::SliceUnexpectedEof => f.write_str("unexpected EOF when reading NBT source slice"),
         }
     }
 }

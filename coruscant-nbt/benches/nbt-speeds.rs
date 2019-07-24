@@ -2,27 +2,27 @@
 extern crate test;
 use test::Bencher;
 
-use coruscant_nbt::{to_gzip_writer, to_writer, Compression};
-use serde::Serialize;
+use coruscant_nbt::{to_gzip_writer, to_writer, to_vec, from_slice, Compression};
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename = "wrap")]
 struct Wrap {
     #[serde(rename = "inner")]
     inner: Inner,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct Inner {
-    map: HashMap<&'static str, f32>,
+    map: HashMap<String, f32>,
 }
 
 // 44 bytes (uncompressed) in total
 fn value() -> Wrap {
     let mut map = HashMap::new();
-    map.insert("123", 123.456);
-    map.insert("456", 789.012);
+    map.insert("123".to_owned(), 123.456);
+    map.insert("456".to_owned(), 789.012);
     Wrap {
         inner: Inner { map },
     }
@@ -78,7 +78,25 @@ fn nbt_ser_simple_gzip_best(b: &mut Bencher) {
     });
 }
 
-#[derive(Serialize)]
+#[bench]
+fn json_de_simple(b: &mut Bencher) {
+    let value = value();
+    let vec = serde_json::to_vec(&value).unwrap();
+    b.iter(|| {
+        let _: Wrap = serde_json::from_slice(&vec).unwrap();
+    });
+}
+
+#[bench]
+fn nbt_de_simple(b: &mut Bencher) {
+    let value = value();
+    let vec = to_vec(&value).unwrap();
+    b.iter(|| {
+        let _: Wrap = from_slice(&vec).unwrap();
+    });
+}
+
+#[derive(Serialize, Deserialize)]
 struct TestStruct {
     #[serde(rename = "byteTest")]
     byte_test: i8,
@@ -93,7 +111,7 @@ struct TestStruct {
     #[serde(rename = "doubleTest")]
     double_test: f64,
     #[serde(rename = "stringTest")]
-    string_test: &'static str,
+    string_test: String,
     #[serde(rename = "listTest (long)")]
     list_long_test: [i64; 5],
     #[serde(rename = "listTest (compound)")]
@@ -106,23 +124,23 @@ struct TestStruct {
     nested: Nested,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct Nested {
     egg: Food,
     ham: Food,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct Food {
-    name: &'static str,
+    name: String,
     value: f32,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct NestedCompound {
     #[serde(rename = "created-on")]
     created_on: i64,
-    name: &'static str,
+    name: String,
 }
 
 // 1537 bytes (uncompressed) in total
@@ -136,11 +154,11 @@ fn value_big() -> TestStruct {
     TestStruct {
         nested: Nested {
             egg: Food {
-                name: "Eggbert",
+                name: "Eggbert".to_owned(),
                 value: 0.5,
             },
             ham: Food {
-                name: "Hampus",
+                name: "Hampus".to_owned(),
                 value: 0.75,
             },
         },
@@ -150,16 +168,16 @@ fn value_big() -> TestStruct {
         long_test: 9223372036854775807,
         double_test: 0.49312871321823148,
         float_test: 0.49823147058486938,
-        string_test: "HELLO WORLD THIS IS A TEST STRING!",
+        string_test: "HELLO WORLD THIS IS A TEST STRING!".to_owned(),
         list_long_test: [11, 12, 13, 14, 15],
         list_compound_test: vec![
             NestedCompound {
                 created_on: 1264099775885,
-                name: "Compound tag #0",
+                name: "Compound tag #0".to_owned(),
             },
             NestedCompound {
                 created_on: 1264099775885,
-                name: "Compound tag #1",
+                name: "Compound tag #1".to_owned(),
             },
         ],
         byte_array_test,
@@ -213,5 +231,23 @@ fn nbt_ser_big_gzip_best(b: &mut Bencher) {
     b.iter(|| {
         let _ = to_gzip_writer(&mut vec, &value, Compression::best()).unwrap();
         vec.clear();
+    });
+}
+
+#[bench]
+fn json_de_big(b: &mut Bencher) {
+    let value = value_big();
+    let vec = serde_json::to_vec(&value).unwrap();
+    b.iter(|| {
+        let _: TestStruct = serde_json::from_slice(&vec).unwrap();
+    });
+}
+
+#[bench]
+fn nbt_de_big(b: &mut Bencher) {
+    let value = value_big();
+    let vec = to_vec(&value).unwrap();
+    b.iter(|| {
+        let _: TestStruct = from_slice(&vec).unwrap();
     });
 }

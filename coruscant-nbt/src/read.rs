@@ -14,6 +14,16 @@ pub trait Read<'de> {
     fn read_byte_inner(&mut self) -> Result<i8>;
 
     fn read_short_inner(&mut self) -> Result<i16>;
+
+    fn read_int_inner(&mut self) -> Result<i32>;
+
+    fn read_long_inner(&mut self) -> Result<i64>;
+
+    fn read_float_inner(&mut self) -> Result<f32>;
+
+    fn read_double_inner(&mut self) -> Result<f64>;
+
+    fn read_string_inner(&mut self) -> Result<Cow<'de, str>>;
 }
 
 pub struct IoRead<R> {
@@ -56,17 +66,7 @@ where
     }
 
     fn read_name(&mut self) -> Result<Cow<'de, str>> {
-        let len = self.inner.read_i16::<BigEndian>()
-            .map_err(|e| Error::io_at(e, self.index))? as usize;
-        self.index += size_of::<i16>();
-        let mut buf = vec![0; len];
-        self.inner.read_exact(&mut buf)
-            .map_err(|e| Error::io_at(e, self.index))?;
-        let string = String::from_utf8(buf)
-            .map_err(|_| Error::utf8_at(self.index))?;
-        self.index += len;
-        let ans = Cow::Owned(string);
-        Ok(ans)
+        self.read_string_inner()
     }
 
     fn read_byte_inner(&mut self) -> Result<i8> {
@@ -81,6 +81,48 @@ where
             .map_err(|e| Error::io_at(e, self.index))?;
         self.index += size_of::<i16>();
         Ok(value)
+    }
+
+    fn read_int_inner(&mut self) -> Result<i32> {
+        let value = self.inner.read_i32::<BigEndian>()
+            .map_err(|e| Error::io_at(e, self.index))?;
+        self.index += size_of::<i32>();
+        Ok(value)
+    }
+
+    fn read_long_inner(&mut self) -> Result<i64> {
+        let value = self.inner.read_i64::<BigEndian>()
+            .map_err(|e| Error::io_at(e, self.index))?;
+        self.index += size_of::<i64>();
+        Ok(value)
+    }
+
+    fn read_float_inner(&mut self) -> Result<f32> {
+        let value = self.inner.read_f32::<BigEndian>()
+            .map_err(|e| Error::io_at(e, self.index))?;
+        self.index += size_of::<f32>();
+        Ok(value)
+    }
+
+    fn read_double_inner(&mut self) -> Result<f64> {
+        let value = self.inner.read_f64::<BigEndian>()
+            .map_err(|e| Error::io_at(e, self.index))?;
+        self.index += size_of::<f64>();
+        Ok(value)
+    }
+
+    fn read_string_inner(&mut self) -> Result<Cow<'de, str>> {
+        let len = self.inner.read_i16::<BigEndian>()
+            .map_err(|e| Error::io_at(e, self.index))? as usize;
+        self.index += size_of::<i16>();
+        let mut buf = vec![0; len];
+        self.inner.read_exact(&mut buf)
+            .map_err(|e| Error::io_at(e, self.index))?;
+        let string = String::from_utf8(buf)
+            .map_err(|_| Error::utf8_at(self.index))?;
+        self.index += len;
+        let ans = Cow::Owned(string);
+        Ok(ans)
     }
     
 }

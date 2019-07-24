@@ -154,6 +154,15 @@ where
         match self.type_id {
             consts::TYPE_ID_BYTE => visitor.visit_i8(self.outer.read.read_byte_inner()?),
             consts::TYPE_ID_SHORT => visitor.visit_i16(self.outer.read.read_short_inner()?),
+            consts::TYPE_ID_INT => visitor.visit_i32(self.outer.read.read_int_inner()?),
+            consts::TYPE_ID_LONG => visitor.visit_i64(self.outer.read.read_long_inner()?),
+            consts::TYPE_ID_FLOAT => visitor.visit_f32(self.outer.read.read_float_inner()?),
+            consts::TYPE_ID_DOUBLE => visitor.visit_f64(self.outer.read.read_double_inner()?),
+            consts::TYPE_ID_STRING => match self.outer.read.read_string_inner()? {
+                Cow::Owned(v) => visitor.visit_string(v),
+                Cow::Borrowed(v) => visitor.visit_str(v),
+            },
+            consts::TYPE_ID_COMPOUND => visitor.visit_map(CompoundAccess::new(self.outer)),
             invalid => Err(Error::invalid_id_at(invalid, self.outer.read.index()))
         }
     }

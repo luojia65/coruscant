@@ -1594,7 +1594,10 @@ impl Formatter for TranscriptFormatter<'_> {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "Byte '{}' {}", name, value)?;
+        write!(w, "Byte '{}' {}", name, value)?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 
@@ -1611,7 +1614,10 @@ impl Formatter for TranscriptFormatter<'_> {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "Short '{}' {}", name, value)?;
+        write!(w, "Short '{}' {}", name, value)?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 
@@ -1628,7 +1634,10 @@ impl Formatter for TranscriptFormatter<'_> {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "Int '{}' {}", name, value)?;
+        write!(w, "Int '{}' {}", name, value)?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 
@@ -1645,7 +1654,10 @@ impl Formatter for TranscriptFormatter<'_> {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "Long '{}' {}", name, value)?;
+        write!(w, "Long '{}' {}", name, value)?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 
@@ -1662,7 +1674,10 @@ impl Formatter for TranscriptFormatter<'_> {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "Float '{}' {}", name, value)?;
+        write!(w, "Float '{}' {}", name, value)?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 
@@ -1679,7 +1694,10 @@ impl Formatter for TranscriptFormatter<'_> {
         let _ = name_len;
         let name = String::from_utf8_lossy(name_bytes);
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "Double '{}' {}", name, value)?;
+        write!(w, "Double '{}' {}", name, value)?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 
@@ -1698,7 +1716,10 @@ impl Formatter for TranscriptFormatter<'_> {
         let name = String::from_utf8_lossy(name_bytes);
         let string = String::from_utf8_lossy(string_bytes);
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "String '{}' {}", name, string)?;
+        write!(w, "String '{}' {}", name, string)?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 
@@ -1727,7 +1748,10 @@ impl Formatter for TranscriptFormatter<'_> {
     {
         self.current_indent -= 1;
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "EndList")?;
+        write!(w, "EndList")?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 
@@ -1764,7 +1788,10 @@ impl Formatter for TranscriptFormatter<'_> {
     {
         self.current_indent -= 1;
         indent(w, self.current_indent, self.indent)?;
-        writeln!(w, "EndArray")?;
+        write!(w, "EndArray")?;
+        if self.current_indent != 0 {
+            writeln!(w)?;
+        }
         Ok(())
     }
 

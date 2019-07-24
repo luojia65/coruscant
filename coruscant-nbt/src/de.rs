@@ -17,7 +17,7 @@ where
 }
 
 pub struct Deserializer<R> {
-    read: R,
+    inner: R,
 }
 
 impl<'de, R> Deserializer<R>
@@ -25,11 +25,11 @@ where
     R: read::Read<'de>,
 {
     pub fn new(read: R) -> Self {
-        Deserializer { read }
+        Deserializer { inner: read }
     }
 
     pub fn into_inner(self) -> R {
-        self.read
+        self.inner
     }
 }
 
@@ -49,28 +49,35 @@ where
     where
         V: de::Visitor<'de>,
     {
-        match self.read.peek_u8()? {
-            Some(consts::TYPE_ID_BYTE) => self.deserialize_i8(visitor),
-            _ => unimplemented!(),
-        }
+        // match self.inner.read_byte_inner()? {
+        //     consts::TYPE_ID_BYTE => visitor.visit_,
+        //     _ => unimplemented!(),
+        // }
+        unimplemented!()
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        match self.read.read_byte_inner()? {
-            1 => visitor.visit_bool(true),
-            0 => visitor.visit_bool(false),
-            _ => Err(invalid_bool_byte()),
-        }
+        // match self.inner.read_type_id()? {
+        //     consts::TYPE_ID_BYTE => visitor.visit_,
+        //     _ => unimplemented!(),
+        // }
+        // match self.read.read_byte_inner()? {
+        //     1 => visitor.visit_bool(true),
+        //     0 => visitor.visit_bool(false),
+        //     _ => Err(invalid_bool_byte()),
+        // }
+        unimplemented!()
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        visitor.visit_i8(self.read.read_byte_inner()?)
+        // visitor.visit_i8(self.read.read_byte_inner()?)
+        unimplemented!()
     }
 
     forward_to_deserialize_any! {

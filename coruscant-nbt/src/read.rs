@@ -149,7 +149,7 @@ impl<'a> SliceRead<'a> {
 
     #[inline]
     fn check_eof(&self, remain_at_least: usize) -> Result<()> {
-        if self.index == self.inner.len() - remain_at_least {
+        if self.index > self.inner.len() - remain_at_least {
             return Err(Error::slice_eof())
         }
         Ok(())
@@ -262,6 +262,7 @@ impl<'a> Read<'a> for SliceRead<'a> {
         let slice = &self.inner[self.index..(self.index + len)];
         let borrowed = std::str::from_utf8(slice)
             .map_err(|_| Error::utf8_at(self.index))?;
+        self.index += len;
         Ok(Cow::Borrowed(borrowed))
     }
 }

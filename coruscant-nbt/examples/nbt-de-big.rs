@@ -1,6 +1,5 @@
-use coruscant_nbt::{from_reader, to_vec, Result};
+use coruscant_nbt::{from_slice, to_vec, Result};
 use serde::{Deserialize, Serialize};
-use std::io::Cursor;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct TestStruct {
@@ -89,8 +88,7 @@ fn main() -> Result<()> {
     };
     let vec = to_vec(&value)?;
     println!("{:?}", vec);
-    let read = Cursor::new(vec);
-    let ans: TestStruct = from_reader(read)?;
+    let ans: TestStruct = from_slice(&vec)?;
     println!("{:?}", ans);
     Ok(())
 }

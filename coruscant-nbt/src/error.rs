@@ -27,7 +27,10 @@ pub(crate) enum ErrorCode {
     SequenceSizeUnknown,
     ListDifferentType,
     ArrayDifferentType,
-    InvalidBoolByte,
+    InvalidBoolByte(i8),
+    InvalidUtf8String,
+    TypeIdMismatch(u8, u8),
+    TypeIdInvalid(u8),
 }
 
 impl Error {
@@ -38,6 +41,31 @@ impl Error {
     pub(crate) fn io(error: io::Error) -> Self {
         let code = ErrorCode::Io(error);
         Self::from_inner(code, 0)
+    }
+
+    pub(crate) fn io_at(error: io::Error, index: usize) -> Self {
+        let code = ErrorCode::Io(error);
+        Self::from_inner(code, index)
+    }
+
+    pub(crate) fn utf8_at(index: usize) -> Self {
+        let code = ErrorCode::InvalidUtf8String;
+        Self::from_inner(code, index)
+    }
+
+    pub(crate) fn mismatch_at(mismatch: u8, expected: u8, index: usize) -> Self {
+        let code = ErrorCode::TypeIdMismatch(mismatch, expected);
+        Self::from_inner(code, index)
+    }
+    
+    pub(crate) fn invalid_id_at(invalid_id: u8, index: usize) -> Self {
+        let code = ErrorCode::TypeIdInvalid(invalid_id);
+        Self::from_inner(code, index)
+    }
+    
+    pub(crate) fn bool_at(invalid: i8, index: usize) -> Self {
+        let code = ErrorCode::InvalidBoolByte(invalid);
+        Self::from_inner(code, index)
     }
 
     #[inline]
@@ -54,7 +82,7 @@ impl fmt::Debug for Error {
         if self.err.index == 0 {
             fmt::Display::fmt(&self.err.code, f)
         } else {
-            write!(f, "{} at index {}", self.err.code, self.err.index)
+            write!(f, "(NBT input:{}) {}", self.err.index, self.err.code)
         }
     }
 }
@@ -71,7 +99,7 @@ impl fmt::Display for ErrorImpl {
             fmt::Display::fmt(&self.code, f)
         } else {
             // todo: improve message format
-            write!(f, "{} at index {}", self.code, self.index)
+            write!(f, "(NBT input:{}) {}", self.index, self.code)
         }
     }
 }
@@ -96,7 +124,15 @@ impl fmt::Display for ErrorCode {
             ErrorCode::ArrayDifferentType => {
                 f.write_str("elements of one array do not have the same type")
             }
-            ErrorCode::InvalidBoolByte => f.write_str("invalid boolean byte"),
+            ErrorCode::InvalidBoolByte(invalid) => 
+                f.write_fmt(format_args!("invalid boolean byte {} (0x{:02X}), 0 or 1 expected"
+                    , invalid, invalid)),
+            ErrorCode::InvalidUtf8String => f.write_str("invalid utf-8 string"),
+            ErrorCode::TypeIdMismatch(invalid, expected) => 
+                f.write_fmt(format_args!("mismatched type id {} (0x{:02X}), expected {} (0x{:02X})"
+                    , invalid, invalid, expected, expected)),
+            ErrorCode::TypeIdInvalid(invalid) => 
+                f.write_fmt(format_args!("invalid type id {} (0x{:02X})", invalid, invalid)),
         }
     }
 }

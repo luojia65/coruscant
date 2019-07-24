@@ -11,6 +11,8 @@ pub trait Read<'de> {
 
     fn read_name(&mut self) -> Result<Cow<'de, str>>;
 
+    fn read_length(&mut self) -> Result<i16>;
+
     fn read_byte_inner(&mut self) -> Result<i8>;
 
     fn read_short_inner(&mut self) -> Result<i16>;
@@ -68,6 +70,10 @@ where
     fn read_name(&mut self) -> Result<Cow<'de, str>> {
         self.read_string_inner()
     }
+    
+    fn read_length(&mut self) -> Result<i16> {
+        self.read_short_inner()
+    }
 
     fn read_byte_inner(&mut self) -> Result<i8> {
         let value = self.inner.read_i8()
@@ -112,9 +118,11 @@ where
     }
 
     fn read_string_inner(&mut self) -> Result<Cow<'de, str>> {
-        let len = self.inner.read_i16::<BigEndian>()
-            .map_err(|e| Error::io_at(e, self.index))? as usize;
-        self.index += size_of::<i16>();
+        let len = self.read_length()?;
+        if len < 0 {
+            return Err(Error::invalid_len_at(len, self.index))
+        }
+        let len = len as usize;
         let mut buf = vec![0; len];
         self.inner.read_exact(&mut buf)
             .map_err(|e| Error::io_at(e, self.index))?;

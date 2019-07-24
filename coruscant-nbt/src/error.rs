@@ -31,6 +31,7 @@ pub(crate) enum ErrorCode {
     InvalidUtf8String,
     TypeIdMismatch(u8, u8),
     TypeIdInvalid(u8),
+    InvalidLength(i16),
 }
 
 impl Error {
@@ -65,6 +66,11 @@ impl Error {
     
     pub(crate) fn bool_at(invalid: i8, index: usize) -> Self {
         let code = ErrorCode::InvalidBoolByte(invalid);
+        Self::from_inner(code, index)
+    }
+
+    pub(crate) fn invalid_len_at(invalid: i16, index: usize) -> Self {
+        let code = ErrorCode::InvalidLength(invalid);
         Self::from_inner(code, index)
     }
 
@@ -133,6 +139,9 @@ impl fmt::Display for ErrorCode {
                     , invalid, invalid, expected, expected)),
             ErrorCode::TypeIdInvalid(invalid) => 
                 f.write_fmt(format_args!("invalid type id {} (0x{:02X})", invalid, invalid)),
+            ErrorCode::InvalidLength(invalid) => 
+                f.write_fmt(format_args!("invalid length {} (0x{:04X}); length must be positive for NBT"
+                    , invalid, invalid)),
         }
     }
 }

@@ -46,10 +46,7 @@ where
     {
         let type_id = self.read.read_type_id()?;
         let root_name = self.read.read_name()?;
-        let value = match type_id {
-            consts::TYPE_ID_COMPOUND => visitor.visit_map(CompoundAccess::new(self))?, 
-            _ => unimplemented!(),
-        };
+        let value = proc_deserialize_value(visitor, type_id, self)?;
         drop(root_name);
         Ok(value)
     }
@@ -107,6 +104,61 @@ where
     }
 }
 
+struct ListOrArrayAccess<'a, R> {
+    type_id: u8,
+    cur_len: i16,
+    total_len: i16,
+    outer: &'a mut Deserializer<R>,
+}
+
+impl<'de, 'a, R> ListOrArrayAccess<'a, R> 
+where
+    R: read::Read<'de>
+{
+    fn list(outer: &'a mut Deserializer<R>) -> Result<Self> {
+        let type_id = outer.read.read_type_id()?;
+        let total_len = outer.read.read_length()?;
+        Ok(Self { type_id, cur_len: 0, total_len, outer })
+    }
+
+    fn byte_array(outer: &'a mut Deserializer<R>) -> Result<Self> {
+        let total_len = outer.read.read_length()?;
+        Ok(Self { type_id: consts::TYPE_ID_BYTE, cur_len: 0, total_len, outer })
+    }
+
+    fn int_array(outer: &'a mut Deserializer<R>) -> Result<Self> {
+        let total_len = outer.read.read_length()?;
+        Ok(Self { type_id: consts::TYPE_ID_INT, cur_len: 0, total_len, outer })
+    }
+
+    fn long_array(outer: &'a mut Deserializer<R>) -> Result<Self> {
+        let total_len = outer.read.read_length()?;
+        Ok(Self { type_id: consts::TYPE_ID_LONG, cur_len: 0, total_len, outer })
+    }
+}
+
+impl<'de, 'a, R> de::SeqAccess<'de> for ListOrArrayAccess<'a, R> 
+where
+    R: read::Read<'de>
+{
+    type Error = Error;
+
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+    where
+        T: de::DeserializeSeed<'de> 
+    {
+        if self.cur_len == self.total_len {
+            return Ok(None);
+        }
+        let value = seed.deserialize(InnerDeserializer {
+            outer: self.outer,
+            type_id: self.type_id
+        })?;
+        self.cur_len += 1;
+        Ok(Some(value))
+    }
+}
+
 struct MapKeyDeserializer<'a, R> {
     outer: &'a mut Deserializer<R>,
 }
@@ -151,20 +203,7 @@ where
     where
         V: de::Visitor<'de>,
     {   
-        match self.type_id {
-            consts::TYPE_ID_BYTE => visitor.visit_i8(self.outer.read.read_byte_inner()?),
-            consts::TYPE_ID_SHORT => visitor.visit_i16(self.outer.read.read_short_inner()?),
-            consts::TYPE_ID_INT => visitor.visit_i32(self.outer.read.read_int_inner()?),
-            consts::TYPE_ID_LONG => visitor.visit_i64(self.outer.read.read_long_inner()?),
-            consts::TYPE_ID_FLOAT => visitor.visit_f32(self.outer.read.read_float_inner()?),
-            consts::TYPE_ID_DOUBLE => visitor.visit_f64(self.outer.read.read_double_inner()?),
-            consts::TYPE_ID_STRING => match self.outer.read.read_string_inner()? {
-                Cow::Owned(v) => visitor.visit_string(v),
-                Cow::Borrowed(v) => visitor.visit_str(v),
-            },
-            consts::TYPE_ID_COMPOUND => visitor.visit_map(CompoundAccess::new(self.outer)),
-            invalid => Err(Error::invalid_id_at(invalid, self.outer.read.index()))
-        }
+        proc_deserialize_value(visitor, self.type_id, self.outer)
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
@@ -187,3 +226,29 @@ where
         tuple_struct map struct enum identifier ignored_any
     }
 }
+
+#[inline]
+fn proc_deserialize_value<'de, 'a, R, V>(visitor: V, type_id: u8, outer: &'a mut Deserializer<R>) -> Result<V::Value> 
+where 
+    R: read::Read<'de>,
+    V: de::Visitor<'de>,
+{
+    match type_id {
+        consts::TYPE_ID_BYTE => visitor.visit_i8(outer.read.read_byte_inner()?),
+        consts::TYPE_ID_SHORT => visitor.visit_i16(outer.read.read_short_inner()?),
+        consts::TYPE_ID_INT => visitor.visit_i32(outer.read.read_int_inner()?),
+        consts::TYPE_ID_LONG => visitor.visit_i64(outer.read.read_long_inner()?),
+        consts::TYPE_ID_FLOAT => visitor.visit_f32(outer.read.read_float_inner()?),
+        consts::TYPE_ID_DOUBLE => visitor.visit_f64(outer.read.read_double_inner()?),
+        consts::TYPE_ID_BYTE_ARRAY => visitor.visit_seq(ListOrArrayAccess::byte_array(outer)?),
+        consts::TYPE_ID_STRING => match outer.read.read_string_inner()? {
+            Cow::Owned(v) => visitor.visit_string(v),
+            Cow::Borrowed(v) => visitor.visit_str(v),
+        },
+        consts::TYPE_ID_LIST => visitor.visit_seq(ListOrArrayAccess::list(outer)?),
+        consts::TYPE_ID_COMPOUND => visitor.visit_map(CompoundAccess::new(outer)),
+        consts::TYPE_ID_INT_ARRAY => visitor.visit_seq(ListOrArrayAccess::int_array(outer)?),
+        consts::TYPE_ID_LONG_ARRAY => visitor.visit_seq(ListOrArrayAccess::long_array(outer)?),
+        invalid => Err(Error::invalid_id_at(invalid, outer.read.index()))
+    }
+} 

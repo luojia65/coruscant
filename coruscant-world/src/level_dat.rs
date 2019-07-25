@@ -9,6 +9,7 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename = "")]
 pub struct LevelDat {
+    /// Contains all the level data.
     #[serde(rename = "Data")]
     pub data: Data,
 }

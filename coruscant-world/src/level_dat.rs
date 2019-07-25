@@ -5,7 +5,7 @@
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-/// Root tag of `level.dat` file. This tag should have an empty name.
+/// Root repersentation of `level.dat` file. 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename = "")]
 pub struct LevelDat {
@@ -14,7 +14,7 @@ pub struct LevelDat {
     pub data: Data,
 }
 
-/// This tag contains all the level data. 
+/// Container for all the level data. 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Data {
     /// A ID/BossEvent collection of bossbars. ID of a bossbar is a string like
@@ -253,7 +253,7 @@ pub struct EnderDimensionData {
     pub dragon_flight: Option<DragonFlight>,
 }
 
-///  Data for the ender dragon fight. 
+/// Data for the ender dragon fight. 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DragonFlight {
     /// Location of the End's exit portal that the ender dragon flies to upon it's death 

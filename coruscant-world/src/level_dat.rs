@@ -30,7 +30,7 @@ pub struct Data {
     dimension_data: DimensionData,
     /// The NBT version of the level, 19133.
     #[serde(rename = "version")]
-    version: i32,
+    version_int: i32,
     /// Normally true after a world has been initialized properly after creation. 
     /// If the initial simulation was canceled somehow, this can be false and the 
     /// world will be re-initialized on next load.
@@ -166,6 +166,7 @@ pub struct Data {
     #[serde(rename = "WanderingTraderSpawnDelay")]
     wanding_trader_spawn_delay: i32,
     /// Information about the Minecraft version the world was saved in. 
+    #[serde(rename = "Version")]
     version: Version,
 }
 

@@ -14,7 +14,7 @@ use flate2::read::ZlibDecoder;
 
 use serde::forward_to_deserialize_any;
 
-/// Deserialize an instance of type `T` from an IO stream of NBT. 
+/// Deserialize an instance of type `T` from an IO stream of NBT.
 pub fn from_reader<R, T>(read: R) -> Result<T>
 where
     R: io::Read,
@@ -24,7 +24,7 @@ where
     T::deserialize(&mut de)
 }
 
-/// Deserialize an instance of type `T` from a GZip compressed IO stream of NBT. 
+/// Deserialize an instance of type `T` from a GZip compressed IO stream of NBT.
 #[cfg(feature = "gzip")]
 pub fn from_gzip_reader<R, T>(read: R) -> Result<T>
 where
@@ -36,7 +36,7 @@ where
     T::deserialize(&mut de)
 }
 
-/// Deserialize an instance of type `T` from a Zlib compressed IO stream of NBT. 
+/// Deserialize an instance of type `T` from a Zlib compressed IO stream of NBT.
 #[cfg(feature = "zlib")]
 pub fn from_zlib_reader<R, T>(read: R) -> Result<T>
 where
@@ -48,7 +48,7 @@ where
     T::deserialize(&mut de)
 }
 
-/// Deserialize an instance of type `T` from an NBT byte slice. 
+/// Deserialize an instance of type `T` from an NBT byte slice.
 pub fn from_slice<'a, T>(slice: &'a [u8]) -> Result<T>
 where
     T: de::Deserialize<'a>,
@@ -66,7 +66,7 @@ impl<R> Deserializer<read::IoRead<R>>
 where
     R: io::Read,
 {
-    /// Create a NBT deserializer from an `io::Read`. 
+    /// Create a NBT deserializer from an `io::Read`.
     pub fn io(read: R) -> Self {
         Deserializer {
             read: read::IoRead::new(read),

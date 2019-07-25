@@ -20,7 +20,7 @@ pub struct Data {
     /// A ID/BossEvent collection of bossbars. ID of a bossbar is a string like
     /// `custom::boss`.
     #[serde(rename = "CustomBossEvents")]
-    pub custom_boss_enevts: HashMap<String, BossEvent>,
+    pub custom_boss_events: HashMap<String, BossEvent>,
     /// Options for datapacks. 
     #[serde(rename = "DataPacks")]
     pub data_packs: DataPacks,

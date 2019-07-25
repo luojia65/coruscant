@@ -89,4 +89,13 @@ mod tests {
             assert_eq!(ans, **data);
         }
     }
+
+    #[test]
+    #[should_panic]
+    fn dimension_deserialize_invalid() {
+        // int value is changed to 2
+        let slice = vec![3u8, 0, 1, 69, 0, 0, 0, 2]; 
+        let _: Dimension = from_slice(&slice)
+            .expect("deserialize data from NBT slice");
+    }
 }

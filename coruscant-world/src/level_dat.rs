@@ -163,7 +163,7 @@ pub struct Data {
     pub wandering_trader_spawn_chance: i32,
     /// The amount of ticks until another wandering trader is attempted to spawn.
     #[serde(rename = "WanderingTraderSpawnDelay")]
-    pub wanding_trader_spawn_delay: i32,
+    pub wandering_trader_spawn_delay: i32,
     /// Information about the Minecraft version the world was saved in. 
     #[serde(rename = "Version")]
     pub version: Version,

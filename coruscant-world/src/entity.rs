@@ -3,44 +3,80 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EntityData {
     #[serde(rename = "id")]
-    id: Option<String>,
+    pub id: Option<String>,
     #[serde(rename = "Pos")]
-    pos: [f64; 3],
+    pub pos: [f64; 3],
     #[serde(rename = "Motion")]
-    motion: [f64; 3],
+    pub motion: [f64; 3],
     #[serde(rename = "Rotation")]
-    rotation: [f32; 2],
+    pub rotation: [f32; 2],
     #[serde(rename = "FallDistance")]
-    fall_distance: f32,
+    pub fall_distance: f32,
     #[serde(rename = "Fire")]
-    fire: i16, 
+    pub fire: i16, 
     #[serde(rename = "Air")]
-    air: i16,
+    pub air: i16,
     #[serde(rename = "OnGround")]
-    on_ground: bool,
+    pub on_ground: bool,
     #[serde(rename = "NoGravity")]
-    no_gravity: bool,
+    pub no_gravity: bool,
     #[serde(rename = "Dimension")]
-    dimension: i32,
+    pub dimension: i32,
     #[serde(rename = "Invulnerable")]
-    invulnerable: bool,
+    pub invulnerable: bool,
     #[serde(rename = "PortalCooldown")]
-    portal_cooldown: i32,
+    pub portal_cooldown: i32,
     #[serde(rename = "UUIDMost")]
-    uuid_most: i64,
+    pub uuid_most: i64,
     #[serde(rename = "UUIDLeast")]
-    uuid_least: i64,
+    pub uuid_least: i64,
     #[serde(rename = "CustomName")]
-    custom_name: String,
+    pub custom_name: String,
     #[serde(rename = "CustomNameVisible")]
-    custom_name_visible: bool,
+    pub custom_name_visible: bool,
     #[serde(rename = "Slient")]
-    slient: bool,
+    pub slient: bool,
     #[serde(rename = "Passengers")]
-    passengers: Vec<EntityData>,
+    pub passengers: Vec<EntityData>,
     #[serde(rename = "Glowing")]
-    glowing: bool,
+    pub glowing: bool,
     #[serde(rename = "Tags")]
-    tags: Vec<String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Mob {
+    #[serde(rename = "Health")]
+    pub health: f32,
+    #[serde(rename = "AbsorptionAmount")]
+    pub absorption_amount: f32,
+    #[serde(rename = "HurtTime")]
+    pub hurt_time: i16,
+    #[serde(rename = "HurtByTimestamp")]
+    pub hurt_by_timestamp: i32,
+    #[serde(rename = "DeathTime")]
+    pub death_time: i16,
+    #[serde(rename = "FallFlying")]
+    pub fall_flying: bool,
+    #[serde(flatten)]
+    pub sleeping_pos: Option<SleepingPos>,
+    #[serde(rename = "Brain")]
+    pub brain: Brain,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SleepingPos {
+    #[serde(rename = "SleepingX")]
+    pub sleeping_x: i32,
+    #[serde(rename = "SleepingY")]
+    pub sleeping_y: i32,
+    #[serde(rename = "SleepingZ")]
+    pub sleeping_z: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Brain {
+    // #[serde(rename = "memories")]
+    // pub memories: Memories,
 }
 

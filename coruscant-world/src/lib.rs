@@ -3,3 +3,4 @@
 //! Documentation content is available under CC BY-NC-SA 3.0 unless otherwise noted.
 
 pub mod level_dat;
+pub mod entity;

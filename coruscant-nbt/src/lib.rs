@@ -1,3 +1,6 @@
+#![doc(html_root_url = "https://docs.coruscant.rs/coruscant_nbt/")]
+// #![warn(missing_docs)]
+
 #[cfg(any(feature = "gzip", feature = "zlib"))]
 pub use flate2::Compression;
 

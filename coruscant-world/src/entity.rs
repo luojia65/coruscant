@@ -119,17 +119,13 @@ pub struct Brain {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Memory {
-    MemoryPosition(MemoryPosition),
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[non_exhaustive]
-pub struct MemoryPosition {
-    #[serde(rename = "pos")]
-    #[serde(serialize_with = "as_nbt_array")]
-    pub pos: [i32; 3],
-    #[serde(rename = "dimension")]
-    pub dimension: String,
+    MemoryPosition { 
+        #[serde(rename = "pos")]
+        #[serde(serialize_with = "as_nbt_array")]
+        pos: [i32; 3],
+        #[serde(rename = "dimension")]
+        dimension: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

@@ -1,16 +1,16 @@
 // ByteArray, IntArray and LongArray serialization
-use coruscant_nbt::to_array;
+use coruscant_nbt::slice_to_array;
 use serde::Serialize;
 
 #[derive(Serialize)]
 struct Wrap<'a> {
-    list_of_bytes: &'a [i8], // no attributes, do it as ListTag of bytes .
-    #[serde(serialize_with = "to_array")] // special attribute used, regard as ByteArray.
+    list_of_bytes: &'a [i8],                    // no attributes, do it as ListTag of bytes .
+    #[serde(serialize_with = "slice_to_array")] // special attribute used, regard as ByteArray.
     byte_array: &'a [i8],
-    #[serde(serialize_with = "to_array")] // same attribute, but for seq of i32 values,
-    int_array: &'a [i32], // we serialize it as IntArray instead.
-    #[serde(serialize_with = "to_array")]
-    long_array: &'a [i64], // for the same reason, LongArray here.
+    #[serde(serialize_with = "slice_to_array")] // same attribute, but for seq of i32 values,
+    int_array: &'a [i32],                       // we serialize it as IntArray instead.
+    #[serde(serialize_with = "slice_to_array")]
+    long_array: &'a [i64],                      // for the same reason, LongArray here.
 }
 
 fn main() {

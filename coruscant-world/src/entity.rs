@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use coruscant_nbt::to_array;
+use coruscant_nbt::as_nbt_array;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[non_exhaustive]
@@ -95,6 +95,6 @@ pub enum Memory {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub struct MemoryPosition {
-    #[serde(serialize_with = "to_array")]
+    #[serde(serialize_with = "as_nbt_array")]
     pub pos: [i32; 3],
 }

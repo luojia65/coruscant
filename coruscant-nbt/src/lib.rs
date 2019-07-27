@@ -28,7 +28,7 @@ pub use value::{to_value, Value};
 pub use map::Map;
 
 #[doc(inline)]
-pub use to_array::serialize as to_array;
+pub use as_nbt_array::serialize as as_nbt_array;
 
 #[macro_use]
 mod macros;
@@ -41,4 +41,4 @@ pub mod root;
 pub mod ser;
 pub mod value;
 
-mod to_array;
+mod as_nbt_array;

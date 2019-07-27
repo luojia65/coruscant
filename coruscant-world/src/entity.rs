@@ -66,6 +66,36 @@ pub struct Mob {
     pub sleeping_pos: Option<SleepingPos>,
     #[serde(rename = "Brain")]
     pub brain: Brain,
+    #[serde(rename = "Attributes")]
+    pub attributes: Vec<Attribute>,
+    #[serde(rename = "ActiveEffects")]
+    pub active_effects: Vec<ActiveEffect>,
+    // #[serde(rename = "HandItems")]
+    // pub hand_items: Vec<Item>,
+    // #[serde(rename = "ArmorItems")]
+    // pub armor_items: Vec<Item>,
+    #[serde(rename = "HandDropChances")]
+    pub hand_drop_chances: Vec<f32>,
+    #[serde(rename = "ArmorDropChances")]
+    pub armor_drop_chances: Vec<f32>,
+    #[serde(rename = "DeathLootTable")]
+    pub death_loot_table: Option<String>,
+    #[serde(rename = "DeathLootTableSeed")]
+    pub death_loot_table_seed: Option<i64>,
+    #[serde(rename = "CanPickUpLoot")]
+    pub can_pick_up_loot: bool,
+    #[serde(rename = "NoAI")]
+    pub no_ai: bool,
+    #[serde(rename = "PersistenceRequired")]
+    pub persistence_required: bool,
+    #[serde(rename = "LeftHanded")]
+    pub left_handed: bool,
+    #[serde(rename = "Team")]
+    pub team: String,
+    #[serde(rename = "Leashed")]
+    pub leashed: bool,
+    #[serde(rename = "Leash")]
+    pub leash: Leash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -95,6 +125,79 @@ pub enum Memory {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub struct MemoryPosition {
+    #[serde(rename = "pos")]
     #[serde(serialize_with = "as_nbt_array")]
     pub pos: [i32; 3],
+    #[serde(rename = "dimension")]
+    pub dimension: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub struct Attribute {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "Base")]
+    pub base: f64,
+    #[serde(rename = "Modifiers")]
+    pub modifiers: Vec<Modifier>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub struct Modifier {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "Amount")]
+    pub amount: f64,
+    #[serde(rename = "Operation")]
+    pub operation: i32,
+    #[serde(rename = "UUIDMost")]
+    pub uuid_most: i64,
+    #[serde(rename = "UUIDLeast")]
+    pub uuid_least: i64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub struct ActiveEffect {
+    #[serde(rename = "Id")]
+    pub id: i8,
+    #[serde(rename = "Amplifier")]
+    pub amplifier: i8,
+    #[serde(rename = "Duration")]
+    pub duration: i32,
+    #[serde(rename = "Ambient")]
+    pub ambient: bool,
+    #[serde(rename = "ShowParticles")]
+    pub show_particles: bool,
+    #[serde(rename = "ShowIcon")]
+    pub show_icon: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub enum Leash {
+    ToEntity(LeashTargetEntity),
+    ToFence(LeashTargetFence),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub struct LeashTargetEntity {
+    #[serde(rename = "UUIDMost")]
+    pub uuid_most: i64,
+    #[serde(rename = "UUIDLeast")]
+    pub uuid_least: i64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub struct LeashTargetFence {
+    #[serde(rename = "X")]
+    pub x: i32,
+    #[serde(rename = "Y")]
+    pub y: i32,
+    #[serde(rename = "Z")]
+    pub z: i32,
 }

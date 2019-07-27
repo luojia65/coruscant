@@ -87,7 +87,6 @@ fn main() -> Result<()> {
         ],
         byte_array_test,
     };
-    println!("{}", to_vec(&value)?.len());
     println!("{}", to_string_transcript(("Level", &value))?);
     Ok(())
 }

@@ -95,7 +95,7 @@ pub struct Mob {
     #[serde(rename = "Leashed")]
     pub leashed: bool,
     #[serde(rename = "Leash")]
-    pub leash: Leash,
+    pub leash: Option<Leash>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

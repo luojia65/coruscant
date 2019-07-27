@@ -1,7 +1,7 @@
 use coruscant_world::level_dat::*;
 
 fn main() {
-// 1. construct non-exhaustive struct values
+// 1. Construct non-exhaustive struct values
 // You may do this:
     let version = Version::new(233, "23w23a".to_string(), true);
     println!("{:?}", version);
@@ -12,7 +12,11 @@ fn main() {
     //     name: "23w23a".to_string(), 
     //     snapshot: true 
     // };
-// 2. extract values using pattern match 
+// 2. Get values from struct field directly
+// This is okay:
+    let id = version.id;
+    println!("{}", id);
+// 3. Extract values using pattern match 
 // You may do this:
     let Version { id, name, snapshot, .. } = version;
     println!("{}; {}; {}", id, name, snapshot);

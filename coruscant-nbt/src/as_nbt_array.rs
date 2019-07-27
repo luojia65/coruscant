@@ -3,10 +3,16 @@ use serde::Serialize;
 /// Mark that a field should be serialized as an NBT array instread of a list of
 /// elements.
 ///
-/// You may use this module by adding `#[serde(serialize_with = "as_nbt_array")]` onto fields
-/// that need to be serialized into arrays, for example ByteArray instead of a ListTag
-/// of bytes. By adding it onto a serde sequence of `i8`, `i32` or `i64`, the serializer
-/// guarantees to procceed them into ByteArray, IntArray or LongArray.
+/// You may use this module by adding an attribute
+/// 
+/// ```
+/// #[serde(serialize_with = "as_nbt_array")]
+/// ```
+/// 
+/// onto fields that need to be serialized into arrays rather than lists. 
+/// By adding it onto a serde sequence of `i8`, `i32` or `i64`, the serializer
+/// guarantees to procceed them into ByteArray, IntArray or LongArray instead of
+/// a ListTag of bytes, ints or longs.
 ///
 /// # Example
 ///

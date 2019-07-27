@@ -364,7 +364,7 @@ where
     where
         T: ser::Serialize,
     {
-        if name == crate::as_nbt_array::TOKEN_AS_ARRAY {
+        if name == crate::to_array::TOKEN_ARRAY {
             value.serialize(ArraySerializer { ser: self })?;
             return Ok(());
         }

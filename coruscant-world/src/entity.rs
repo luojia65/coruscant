@@ -1,4 +1,6 @@
 use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
+use coruscant_nbt::to_array;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[non_exhaustive]
@@ -80,7 +82,19 @@ pub struct SleepingPos {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub struct Brain {
-    // #[serde(rename = "memories")]
-    // pub memories: HashMap<String, Memory>,
+    #[serde(rename = "memories")]
+    pub memories: HashMap<String, Memory>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub enum Memory {
+    MemoryPosition(MemoryPosition),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub struct MemoryPosition {
+    #[serde(serialize_with = "to_array")]
+    pub pos: [i32; 3],
+}

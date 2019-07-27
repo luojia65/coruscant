@@ -39,15 +39,13 @@
 //!
 //! # Notes
 //!
-//! Although this module seems empty in docs, it actually consists of a doc hidden
-//! `serialize` method and a special wrapper struct. This enables serde to serialize
-//! marked fields using this method, in which your field are wrapped by the struct
-//! and procceeded differently in `coruscant::Serializer`, resulting in switching
-//! lists into arrays.
+//! This module actually includes a doc hidden special wrapper struct. This enables 
+//! serde to serialize marked fields using this method, in which your field are wrapped 
+//! by the struct and procceeded differently in `coruscant::Serializer`, resulting in 
+//! switching lists into arrays.
 
 use serde::Serialize;
 
-#[doc(hidden)]
 pub fn serialize<'a, T, S>(value: &T, serializer: S) -> core::result::Result<S::Ok, S::Error>
 where
     T: serde::Serialize,
@@ -62,4 +60,4 @@ where
 #[serde(rename = "$coruscant_nbt::private::__WrapAsArray")]
 pub struct __WrapAsArray<T>(pub T);
 
-pub(crate) const TOKEN_AS_ARRAY: &'static str = "$coruscant_nbt::private::__WrapAsArray";
+pub(crate) const TOKEN_ARRAY: &'static str = "$coruscant_nbt::private::__WrapAsArray";

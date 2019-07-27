@@ -7,6 +7,7 @@ use std::collections::HashMap;
 /// Root repersentation of `level.dat` file.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename = "")]
+#[non_exhaustive]
 pub struct LevelDat {
     /// Contains all the level data.
     #[serde(rename = "Data")]
@@ -15,6 +16,7 @@ pub struct LevelDat {
 
 /// Container for all the level data.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct Data {
     /// A ID/BossEvent collection of bossbars. ID of a bossbar is a string like
     /// `custom::boss`.
@@ -170,6 +172,7 @@ pub struct Data {
 
 /// Represents one single bossbar in `CustomBossEvents`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct BossEvent {
     /// A list of players that may see this boss bar.
     #[serde(rename = "Players")]
@@ -212,6 +215,7 @@ pub struct BossEvent {
 
 /// Uuid of a single player.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct PlayerUuid {
     /// The least significant bits of the player's Universally Unique IDentifier.
     /// This is joined with M to form the player's unique ID.
@@ -225,6 +229,7 @@ pub struct PlayerUuid {
 
 /// Options for datapacks.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct DataPacks {
     /// List of disabled datapacks.
     #[serde(rename = "Disabled")]
@@ -236,6 +241,7 @@ pub struct DataPacks {
 
 /// Level data specific to certain dimensions.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct DimensionData {
     /// Data for The End
     #[serde(rename = "1")]
@@ -244,6 +250,7 @@ pub struct DimensionData {
 
 /// Level data for The End
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct EnderDimensionData {
     /// Data for the ender dragon fight. Only appears after the end is entered.
     ///
@@ -254,6 +261,7 @@ pub struct EnderDimensionData {
 
 /// Data for the ender dragon fight.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct DragonFlight {
     /// Location of the End's exit portal that the ender dragon flies to upon it's death
     #[serde(rename = "ExitPortalLocation")]
@@ -281,6 +289,7 @@ pub struct DragonFlight {
 
 /// Location of the End's exit portal that the ender dragon flies to upon it's death
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct ExitPortalLocation {
     /// The X coordinate of the portal.
     #[serde(rename = "X")]
@@ -294,12 +303,19 @@ pub struct ExitPortalLocation {
 }
 
 /// Information about the Minecraft version the world was saved in.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct Version {
     #[serde(rename = "Id")]
-    id: i32,
+    pub id: i32,
     #[serde(rename = "Name")]
-    name: String,
+    pub name: String,
     #[serde(rename = "Snapshot")]
-    snapshot: bool,
+    pub snapshot: bool,
+}
+
+impl Version {
+    pub fn new(id: i32, name: String, snapshot: bool) -> Version {
+        Version { id, name, snapshot }
+    }
 }

@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 coruscant-nbt = { version = "0.1", path = "../coruscant-nbt" }
 serde = { version = "1.0", features = ["derive"] }
+derive_builder = "0.7"

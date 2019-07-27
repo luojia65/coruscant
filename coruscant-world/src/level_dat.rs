@@ -1,12 +1,11 @@
 //! Level format parsed as serde favored Rust structs.
 //!
 //! Ref: https://minecraft.gamepedia.com/Level_format
-
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Root repersentation of `level.dat` file.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 #[serde(rename = "")]
 pub struct LevelDat {
     /// Contains all the level data.
@@ -15,7 +14,7 @@ pub struct LevelDat {
 }
 
 /// Container for all the level data.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct Data {
     /// A ID/BossEvent collection of bossbars. ID of a bossbar is a string like
     /// `custom::boss`.
@@ -170,7 +169,7 @@ pub struct Data {
 }
 
 /// Represents one single bossbar in `CustomBossEvents`.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct BossEvent {
     /// A list of players that may see this boss bar.
     #[serde(rename = "Players")]
@@ -212,7 +211,7 @@ pub struct BossEvent {
 }
 
 /// Uuid of a single player.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct PlayerUuid {
     /// The least significant bits of the player's Universally Unique IDentifier.
     /// This is joined with M to form the player's unique ID.
@@ -225,7 +224,7 @@ pub struct PlayerUuid {
 }
 
 /// Options for datapacks.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct DataPacks {
     /// List of disabled datapacks.
     #[serde(rename = "Disabled")]
@@ -236,7 +235,7 @@ pub struct DataPacks {
 }
 
 /// Level data specific to certain dimensions.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct DimensionData {
     /// Data for The End
     #[serde(rename = "1")]
@@ -244,7 +243,7 @@ pub struct DimensionData {
 }
 
 /// Level data for The End
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct EnderDimensionData {
     /// Data for the ender dragon fight. Only appears after the end is entered.
     ///
@@ -254,7 +253,7 @@ pub struct EnderDimensionData {
 }
 
 /// Data for the ender dragon fight.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct DragonFlight {
     /// Location of the End's exit portal that the ender dragon flies to upon it's death
     #[serde(rename = "ExitPortalLocation")]
@@ -281,7 +280,7 @@ pub struct DragonFlight {
 }
 
 /// Location of the End's exit portal that the ender dragon flies to upon it's death
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct ExitPortalLocation {
     /// The X coordinate of the portal.
     #[serde(rename = "X")]
@@ -295,7 +294,7 @@ pub struct ExitPortalLocation {
 }
 
 /// Information about the Minecraft version the world was saved in.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Builder, Clone, Debug, PartialEq)]
 pub struct Version {
     #[serde(rename = "Id")]
     id: i32,

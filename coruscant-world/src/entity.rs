@@ -178,26 +178,19 @@ pub struct ActiveEffect {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Leash {
-    ToEntity(LeashTargetEntity),
-    ToFence(LeashTargetFence),
+    ToEntity {
+        #[serde(rename = "UUIDMost")]
+        uuid_most: i64,
+        #[serde(rename = "UUIDLeast")]
+        uuid_least: i64,
+    },
+    ToFence {
+        #[serde(rename = "X")]
+        x: i32,
+        #[serde(rename = "Y")]
+        y: i32,
+        #[serde(rename = "Z")]
+        z: i32,
+    },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[non_exhaustive]
-pub struct LeashTargetEntity {
-    #[serde(rename = "UUIDMost")]
-    pub uuid_most: i64,
-    #[serde(rename = "UUIDLeast")]
-    pub uuid_least: i64,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[non_exhaustive]
-pub struct LeashTargetFence {
-    #[serde(rename = "X")]
-    pub x: i32,
-    #[serde(rename = "Y")]
-    pub y: i32,
-    #[serde(rename = "Z")]
-    pub z: i32,
-}

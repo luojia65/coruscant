@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "coruscant-nbt",
+    "coruscant-noise",
     "coruscant-world",
 ]

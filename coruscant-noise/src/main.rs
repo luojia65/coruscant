@@ -26,28 +26,44 @@ const PERM: [usize; 512] = [
     222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180,
 ];
 
-pub fn main() {
-    let x: f32 = 34.56;
-    let y: f32 = -56.78;
-    let xi = ((x as isize) & 0xFF) as usize;
-    let yi = ((y as isize) & 0xFF) as usize;
+fn main() {
+    const WIDTH: usize = 1000;
+    const HEIGHT: usize = 1000;
+    let mut pixels: Vec<u8> = Vec::with_capacity(WIDTH * HEIGHT);
+    for x in 0..HEIGHT {
+        for y in 0..WIDTH {
+            let x = (x as f32 / (HEIGHT as f32)) * 50.0;
+            let y = (y as f32 / (WIDTH as f32)) * 50.0;
+            let ans = perlin(x, y);
+            let ans = if ans > 0.5 { 255 } 
+                else if ans < -0.5 { 0 } 
+                else { ((ans + 0.5) * 255.0) as u8 };
+            pixels.push(ans);
+        }
+    }
+    image::save_buffer(
+        &std::path::Path::new("2.png"),
+        &*pixels,
+        WIDTH as u32,
+        HEIGHT as u32,
+        image::ColorType::Gray(8),
+    ).unwrap();
+}
+
+fn perlin(x: f32, y: f32) -> f32 {
+    let xi = (x as isize & 0xFF) as usize;
+    let yi = (y as isize & 0xFF) as usize;
     let xf = x - x.floor();
     let yf = y - y.floor();
-    
     let u = fade(xf);
     let v = fade(yf);
+    let a = PERM[xi] + yi;
+    let b = PERM[xi+1] + yi;
     
-    let aa = PERM[PERM[xi]+yi];
-    let ab = PERM[PERM[xi]+yi+1];
-    let ba = PERM[PERM[xi+1]+yi];
-    let bb = PERM[PERM[xi+1]+yi+1];
-    
-    let ans = lerp(v, lerp(u, grad(PERM[aa], x, y), 
-                              grad(PERM[ba], x - 1.0, y)),
-                      lerp(u, grad(PERM[ab], x, y - 1.0), 
-                              grad(PERM[bb], x - 1.0, y - 1.0)));
-    
-    println!("{:?}", ans);
+    lerp(v, lerp(u, grad(PERM[a], xf, yf), 
+                    grad(PERM[b], xf - 1.0, yf)),
+            lerp(u, grad(PERM[a+1], xf, yf - 1.0), 
+                    grad(PERM[b+1], xf - 1.0, yf - 1.0)))
 }
 
 #[inline]

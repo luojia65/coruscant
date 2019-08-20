@@ -55,3 +55,9 @@ impl serde::ser::Error for Error {
         Error { repr: Repr::Message(msg.to_string().into_boxed_str()) }
     }
 }
+
+impl serde::de::Error for Error {
+    fn custom<T: fmt::Display>(msg: T) -> Error {
+        Error { repr: Repr::Message(msg.to_string().into_boxed_str()) }
+    }
+}

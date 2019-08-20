@@ -2,5 +2,6 @@
 members = [
     "coruscant-nbt",
     "coruscant-noise",
+    "coruscant-tyjson",
     "coruscant-world",
 ]

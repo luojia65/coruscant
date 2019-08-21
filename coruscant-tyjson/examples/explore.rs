@@ -16,8 +16,9 @@ fn main() {
     // }
     let mut prev_ends_odd_backslash = unsafe { _mm256_setzero_si256() };
     odd_backslash_sequences(input_vec, &mut prev_ends_odd_backslash);
-
-    println!("AVX2 {}", is_x86_feature_detected!("avx2"));
+    {
+    println!()
+    }
 }
 
 fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut __m256i) -> __m256i {

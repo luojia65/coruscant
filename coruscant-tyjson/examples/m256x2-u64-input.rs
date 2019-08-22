@@ -40,8 +40,6 @@ fn odd_backslash_sequences(input: [__m256i; 2], prev_ov: &mut u64) -> u64 {
     even_start_odd_end | odd_start_even_end
 }
 
-
-
 // fn print_m256(input: __m256i) {
 //     let arr = [0u64; 4];
 //     unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }

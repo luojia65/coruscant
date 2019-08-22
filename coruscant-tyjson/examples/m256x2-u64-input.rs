@@ -6,12 +6,13 @@ fn main() {
     let mut input_vec: [__m256i; 2] = unsafe { core::mem::zeroed() };
     let mut prev_ov = 0;
     let mut ptr = input.as_ptr();
-    for _ in 0..4 {
+    for _ in 0..16 {
         input_vec[0] = unsafe { _mm256_loadu_si256(ptr as *const _) };
         input_vec[1] = unsafe { _mm256_loadu_si256(ptr.add(32) as *const _) };
         unsafe { ptr = ptr.add(64) };
         let od = odd_backslash_sequences(input_vec, &mut prev_ov);
-        println!("{:064b} {}", od, prev_ov);
+        print!("{} ", prev_ov);
+        println!("{:016X}", od);
     }
 }
 

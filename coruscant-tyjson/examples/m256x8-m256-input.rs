@@ -6,7 +6,7 @@ fn main() {
     let mut input_vec: [__m256i; 8] = unsafe { core::mem::zeroed() };
     let mut prev_ov = false;
     let mut ptr = input.as_ptr();
-    for _ in 0..4 {
+    for _ in 0..16 {
         for i in 0..8 {
             input_vec[i] = unsafe { _mm256_loadu_si256(ptr as *const _) };
             unsafe { ptr = ptr.add(32) };

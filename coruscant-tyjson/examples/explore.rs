@@ -4,11 +4,11 @@ use core::mem::transmute;
 fn main() {
     let input = include_bytes!("explore.in");
     let mut input_vec: [__m256i; 8] = unsafe {
-        core::mem::MaybeUninit::uninit().assume_init() 
+        core::mem::zeroed() 
     };
     let mut ptr = input.as_ptr();
     for i in 0..8 {
-        input_vec[i] = unsafe { _mm256_load_si256(ptr as *const _) };
+        input_vec[i] = unsafe { _mm256_loadu_si256(ptr as *const _) };
         unsafe { ptr = ptr.add(32) };
     }
     // for input in &input_vec {
@@ -16,9 +16,6 @@ fn main() {
     // }
     let mut prev_ends_odd_backslash = unsafe { _mm256_setzero_si256() };
     odd_backslash_sequences(input_vec, &mut prev_ends_odd_backslash);
-    {
-    println!()
-    }
 }
 
 fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut __m256i) -> __m256i {
@@ -50,10 +47,10 @@ fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut __
     //
     unsafe {
         print_m256(backslashes);
-        // let sll = _mm256_slli_epi64(backslashes, 1);
-        // print_m256(sll);
-        // let hi = _mm256_srli_epi64(backslashes, 63);
-        // print_m256(hi);
+        let sll = _mm256_slli_epi64(backslashes, 1);
+        print_m256(sll);
+        let hi = _mm256_srli_epi64(backslashes, 63);
+        print_m256(hi);
         let ans = _mm256_permute4x64_epi64(backslashes, 0b00011011);
         print_m256(ans);
     }

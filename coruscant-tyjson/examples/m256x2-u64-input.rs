@@ -41,6 +41,27 @@ fn odd_backslash_sequences(input: [__m256i; 2], prev_ov: &mut u64) -> u64 {
     even_start_odd_end | odd_start_even_end
 }
 
+#[inline(always)]
+fn find_whitespace_and_structurals(input: [__m256i; 2], whitespace: &mut u64, structurals: &mut u64) {
+    let low_nibble_mask = _mm256_setr_epi8(
+        16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 12, 1, 2, 9, 0, 0, 
+        16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 12, 1, 2, 9, 0, 0,
+    );
+    let high_nibble_mask = _mm256_setr_epi8(
+        8, 0, 18, 4, 0, 1, 0, 1, 0, 0, 0, 3, 2, 1, 0, 0, 
+        8, 0, 18, 4, 0, 1, 0, 1, 0, 0, 0, 3, 2, 1, 0, 0,
+    );
+    let structural_mask = _mm256_set1_epi8(0x7);
+    let whitespace_mask = _mm256_set1_epi8(0x18);
+    let category_hi32 = unsafe {
+        _mm256_and_si256(
+            _mm256_shuffle_epi8(low_nibble_mask, input[0]),
+            _mm256_shuffle_epi8(high_nibble_mask, )
+        )
+    };
+    unimplemented!()
+}
+
 // fn print_m256(input: __m256i) {
 //     let arr = [0u64; 4];
 //     unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }

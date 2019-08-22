@@ -3,19 +3,18 @@ use core::mem::transmute;
 
 fn main() {
     let input = include_bytes!("explore.in");
-    let mut input_vec: [__m256i; 8] = unsafe {
-        core::mem::zeroed() 
-    };
+    let mut input_vec: [__m256i; 8] = unsafe { core::mem::zeroed() };
+    let mut prev_ov = false;
     let mut ptr = input.as_ptr();
-    for i in 0..8 {
-        input_vec[i] = unsafe { _mm256_loadu_si256(ptr as *const _) };
-        unsafe { ptr = ptr.add(32) };
+    for _ in 0..4 {
+        for i in 0..8 {
+            input_vec[i] = unsafe { _mm256_loadu_si256(ptr as *const _) };
+            unsafe { ptr = ptr.add(32) };
+        }
+        let od = odd_backslash_sequences(input_vec, &mut prev_ov);
+        print!("{} ", if prev_ov { 1 } else { 0 });
+        print_m256(od);
     }
-    // for input in &input_vec {
-    //     print_m256(*input)
-    // }
-    let mut prev_ends_odd_backslash = true;
-    odd_backslash_sequences(input_vec, &mut prev_ends_odd_backslash);
 }
 
 #[inline(always)]
@@ -74,13 +73,31 @@ fn odd_backslash_sequences(input: [__m256i; 8], prev_ov: &mut bool) -> __m256i {
     } else {
         odd_carries
     };
-    
-    unimplemented!()
+    *prev_ov = ov != 0;
+    let even_carry_ends = unsafe { _mm256_andnot_si256(backslashes, even_carries) };
+    let odd_carry_ends = unsafe { _mm256_andnot_si256(backslashes, odd_carries) };
+    let even_start_odd_end = unsafe { _mm256_and_si256(even_carry_ends, odd_bits) };
+    let odd_start_even_end = unsafe { _mm256_and_si256(odd_carry_ends, even_bits) };
+    unsafe { _mm256_or_si256(even_start_odd_end, odd_start_even_end) }
 }
 
 fn print_m256(input: __m256i) {
     let arr = [0u64; 4];
     unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }
-    print!("{:016X} {:016X} {:016X} {:016X}", arr[3], arr[2], arr[1], arr[0]);
-    println!()
+    println!("{:016X} {:016X} {:016X} {:016X}", arr[3], arr[2], arr[1], arr[0]);
 }
+
+// fn print_m256_bits(input: __m256i) {
+//     let arr = [0u64; 4];
+//     unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }
+//     for i in 0..4 {
+//         for j in 0..64 {
+//             if (arr[i] & (0b1 << j)) != 0 { 
+//                 print!("1")
+//             } else {
+//                 print!("-")
+//             }
+//         };
+//     }
+//     println!()
+// }

@@ -14,11 +14,11 @@ fn main() {
     // for input in &input_vec {
     //     print_m256(*input)
     // }
-    let mut prev_ends_odd_backslash = unsafe { _mm256_setzero_si256() };
+    let mut prev_ends_odd_backslash = 0;
     odd_backslash_sequences(input_vec, &mut prev_ends_odd_backslash);
 }
 
-fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut __m256i) -> __m256i {
+fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut i32) -> __m256i {
     let even_bits = unsafe { _mm256_set1_epi8(transmute(0x55u8)) };
     let odd_bits = unsafe { _mm256_set1_epi8(transmute(0xAAu8)) };
 
@@ -35,32 +35,26 @@ fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut __
             _mm256_movemask_epi8(_mm256_cmpeq_epi8(input[0], mask)),
         )
     };
-    // print_m256(backslashes);
+    print_m256(backslashes);
 
     // let starts = backslashes & (!(backslashes << 1));
-    // there is no slli for si256, have to split into 64 bit values
     let starts = unsafe {
-        _mm256_andnot_si256(_mm256_slli_epi64(backslashes, 1), backslashes)
+        // calculate ans_sll = backslash << 1
+        let sll64 = _mm256_slli_epi64(backslashes, 1);
+        let srl64 = _mm256_srli_epi64(backslashes, 63);
+        let hi64 = _mm256_permute4x64_epi64(srl64, 0b10_01_00_11);
+        let hi64 = _mm256_insert_epi64(hi64, 0, 0);
+        let ans_sll = _mm256_add_epi64(sll64, hi64);
+        // calculate backslashes & (!ans_sll)
+        _mm256_andnot_si256(ans_sll, backslashes)
     };
-    // print_m256(starts);
-
-    //
-    unsafe {
-        print_m256(backslashes);
-        let sll = _mm256_slli_epi64(backslashes, 1);
-        print_m256(sll);
-        let hi = _mm256_srli_epi64(backslashes, 63);
-        print_m256(hi);
-        let ans = _mm256_permute4x64_epi64(backslashes, 0b00011011);
-        print_m256(ans);
-    }
-    //
+    print_m256(starts);
 
     let even_starts = unsafe { _mm256_andnot_si256(odd_bits, starts) };
-    // print_m256(even_starts);
+    print_m256(even_starts);
 
     let even_carries = unsafe { _mm256_add_epi64(even_starts, backslashes) };
-    // print_m256(even_carries);
+    print_m256(even_carries);
 
     unimplemented!()
 }

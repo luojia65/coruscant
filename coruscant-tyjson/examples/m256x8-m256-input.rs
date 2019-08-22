@@ -14,12 +14,12 @@ fn main() {
     // for input in &input_vec {
     //     print_m256(*input)
     // }
-    let mut prev_ends_odd_backslash = 0;
+    let mut prev_ends_odd_backslash = true;
     odd_backslash_sequences(input_vec, &mut prev_ends_odd_backslash);
 }
 
 #[inline(always)]
-fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut i32) -> __m256i {
+fn odd_backslash_sequences(input: [__m256i; 8], prev_ov: &mut bool) -> __m256i {
     let even_bits = unsafe { _mm256_set1_epi8(transmute(0x55u8)) };
     let odd_bits = unsafe { _mm256_set1_epi8(transmute(0xAAu8)) };
 
@@ -51,11 +51,16 @@ fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut i3
     };
     print_m256(starts);
 
-    let even_starts = unsafe { _mm256_andnot_si256(odd_bits, starts) };
-    print_m256(even_starts);
-
+    let even_start_flipped_mask = if *prev_ov { 
+        let one = unsafe { _mm256_set_epi64x(0, 0, 0, 1) };
+        unsafe { _mm256_xor_si256(odd_bits, one) }
+    } else { 
+        odd_bits  
+    };
+    let even_starts = unsafe { _mm256_andnot_si256(even_start_flipped_mask, starts) };
+    let odd_starts = unsafe { _mm256_and_si256(even_start_flipped_mask, starts) };
     let even_carries = unsafe { _mm256_add_epi64(even_starts, backslashes) };
-    print_m256(even_carries);
+    
 
     unimplemented!()
 }

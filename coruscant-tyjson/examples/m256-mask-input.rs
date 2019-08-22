@@ -18,6 +18,7 @@ fn main() {
     odd_backslash_sequences(input_vec, &mut prev_ends_odd_backslash);
 }
 
+#[inline(always)]
 fn odd_backslash_sequences(input: [__m256i; 8], prev_ends_odd_backslash: &mut i32) -> __m256i {
     let even_bits = unsafe { _mm256_set1_epi8(transmute(0x55u8)) };
     let odd_bits = unsafe { _mm256_set1_epi8(transmute(0xAAu8)) };

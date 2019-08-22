@@ -15,6 +15,7 @@ fn main() {
     }
 }
 
+#[inline(always)]
 fn odd_backslash_sequences(input: [__m256i; 2], prev_ov: &mut u64) -> u64 {
     const EVEN_BITS: u64 = 0x5555_5555_5555_5555;
     const ODD_BITS: u64 = 0xAAAA_AAAA_AAAA_AAAA;
@@ -38,6 +39,8 @@ fn odd_backslash_sequences(input: [__m256i; 2], prev_ov: &mut u64) -> u64 {
     let odd_start_even_end = odd_carry_ends & EVEN_BITS;
     even_start_odd_end | odd_start_even_end
 }
+
+
 
 // fn print_m256(input: __m256i) {
 //     let arr = [0u64; 4];

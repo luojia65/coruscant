@@ -4,6 +4,8 @@ use core::mem::transmute;
 fn main() {
     let input = include_bytes!("explore.in");
     let mut input_vec: [__m256i; 8] = unsafe { core::mem::zeroed() };
+    let mut whitespace: __m256i = unsafe { core::mem::zeroed() };
+    let mut structures: __m256i = unsafe { core::mem::zeroed() };
     let mut prev_ov = false;
     let mut ptr = input.as_ptr();
     for _ in 0..16 {
@@ -12,8 +14,10 @@ fn main() {
             unsafe { ptr = ptr.add(32) };
         }
         let od = odd_backslash_sequences(input_vec, &mut prev_ov);
-        print!("{} ", if prev_ov { 1 } else { 0 });
-        print_m256(od);
+        // print!("{} ", if prev_ov { 1 } else { 0 });
+        // print_m256(od);
+        find_whitespace_and_structurals(input_vec, &mut whitespace, &mut structures);
+        print_m256(structures);
     }
 }
 
@@ -79,6 +83,52 @@ fn odd_backslash_sequences(input: [__m256i; 8], prev_ov: &mut bool) -> __m256i {
     let even_start_odd_end = unsafe { _mm256_and_si256(even_carry_ends, odd_bits) };
     let odd_start_even_end = unsafe { _mm256_and_si256(odd_carry_ends, even_bits) };
     unsafe { _mm256_or_si256(even_start_odd_end, odd_start_even_end) }
+}
+
+#[inline(always)]
+fn find_whitespace_and_structurals(input: [__m256i; 8], whitespace: &mut __m256i, structurals: &mut __m256i) {
+    let low_nibble_mask = unsafe { _mm256_setr_epi8(
+        16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0, 
+        16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0,
+    ) };
+    let high_nibble_mask = unsafe { _mm256_setr_epi8(
+        8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 
+        8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0,
+    ) };
+    let structural_mask = unsafe { _mm256_set1_epi8(0x07) };
+    let whitespace_mask = unsafe { _mm256_set1_epi8(0x18) };
+    let zero = unsafe { _mm256_set1_epi8(0) };
+
+    macro_rules! category_and_structural {
+        ($index: expr, $category_name: ident, $structural_name: ident) => {
+    let $category_name = unsafe {
+        let lo_nibble = _mm256_shuffle_epi8(low_nibble_mask, input[$index]);
+        let hi_nibble = _mm256_shuffle_epi8(high_nibble_mask, 
+            _mm256_and_si256(_mm256_srli_epi64(input[$index], 4), _mm256_set1_epi8(0x7f))
+        );
+        _mm256_and_si256(lo_nibble, hi_nibble)
+    };
+    let $structural_name: i32 = unsafe { 
+        let category_structural = _mm256_and_si256($category_name, structural_mask);
+        let ans = _mm256_cmpgt_epi8(category_structural, zero);
+        transmute(_mm256_movemask_epi8(ans))
+    };
+        };
+    }
+
+    category_and_structural!(7, category_7, structural_7);
+    category_and_structural!(6, category_6, structural_6);
+    category_and_structural!(5, category_5, structural_5);
+    category_and_structural!(4, category_4, structural_4);
+    category_and_structural!(3, category_3, structural_3);
+    category_and_structural!(2, category_2, structural_2);
+    category_and_structural!(1, category_1, structural_1);
+    category_and_structural!(0, category_0, structural_0);
+
+    *structurals = unsafe { _mm256_set_epi32(
+        structural_7, structural_6, structural_5, structural_4,
+        structural_3, structural_2, structural_1, structural_0,
+    ) };
 }
 
 fn print_m256(input: __m256i) {

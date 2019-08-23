@@ -16,7 +16,7 @@ fn main() {
         find_whitespace_and_structurals(input_vec, &mut whitespace, &mut structurals);
         print!("{} ", prev_ov);
         print!("{:016X} ", od);
-        println!("{:016X}", whitespace);
+        println!("{:016X} ", structurals);
     }
 }
 

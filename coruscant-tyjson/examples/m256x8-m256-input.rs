@@ -17,7 +17,7 @@ fn main() {
         // print!("{} ", if prev_ov { 1 } else { 0 });
         // print_m256(od);
         find_whitespace_and_structurals(input_vec, &mut whitespace, &mut structures);
-        print_m256(structures);
+        print_m256(whitespace);
     }
 }
 
@@ -99,8 +99,9 @@ fn find_whitespace_and_structurals(input: [__m256i; 8], whitespace: &mut __m256i
     let whitespace_mask = unsafe { _mm256_set1_epi8(0x18) };
     let zero = unsafe { _mm256_set1_epi8(0) };
 
-    macro_rules! category_and_structural {
-        ($index: expr, $category_name: ident, $structural_name: ident) => {
+    macro_rules! calc_category {
+        ($index: expr, $category_name: ident, 
+        $structural_name: ident, $whitespace_name: ident) => {
     let $category_name = unsafe {
         let lo_nibble = _mm256_shuffle_epi8(low_nibble_mask, input[$index]);
         let hi_nibble = _mm256_shuffle_epi8(high_nibble_mask, 
@@ -113,21 +114,31 @@ fn find_whitespace_and_structurals(input: [__m256i; 8], whitespace: &mut __m256i
         let ans = _mm256_cmpgt_epi8(category_structural, zero);
         transmute(_mm256_movemask_epi8(ans))
     };
+    let $whitespace_name: i32 = unsafe { 
+        let category_whitespace = _mm256_and_si256($category_name, whitespace_mask);
+        let ans = _mm256_cmpgt_epi8(category_whitespace, zero);
+        transmute(_mm256_movemask_epi8(ans))
+    };
         };
     }
 
-    category_and_structural!(7, category_7, structural_7);
-    category_and_structural!(6, category_6, structural_6);
-    category_and_structural!(5, category_5, structural_5);
-    category_and_structural!(4, category_4, structural_4);
-    category_and_structural!(3, category_3, structural_3);
-    category_and_structural!(2, category_2, structural_2);
-    category_and_structural!(1, category_1, structural_1);
-    category_and_structural!(0, category_0, structural_0);
+    calc_category!(7, category_7, structural_7, whitespace_7);
+    calc_category!(6, category_6, structural_6, whitespace_6);
+    calc_category!(5, category_5, structural_5, whitespace_5);
+    calc_category!(4, category_4, structural_4, whitespace_4);
+    calc_category!(3, category_3, structural_3, whitespace_3);
+    calc_category!(2, category_2, structural_2, whitespace_2);
+    calc_category!(1, category_1, structural_1, whitespace_1);
+    calc_category!(0, category_0, structural_0, whitespace_0);
 
     *structurals = unsafe { _mm256_set_epi32(
         structural_7, structural_6, structural_5, structural_4,
         structural_3, structural_2, structural_1, structural_0,
+    ) };
+
+    *whitespace = unsafe { _mm256_set_epi32(
+        whitespace_7, whitespace_6, whitespace_5, whitespace_4,
+        whitespace_3, whitespace_2, whitespace_1, whitespace_0,
     ) };
 }
 

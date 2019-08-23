@@ -14,9 +14,9 @@ fn main() {
         unsafe { ptr = ptr.add(64) };
         let od = odd_backslash_sequences(input_vec, &mut prev_ov);
         find_whitespace_and_structurals(input_vec, &mut whitespace, &mut structurals);
-        print!("{} ", prev_ov);
-        print!("{:016X} ", od);
-        println!("{:016X} ", structurals);
+        // print!("{} ", prev_ov);
+        // print!("{:016X} ", od);
+        println!("{:016X} ", whitespace);
     }
 }
 
@@ -59,16 +59,16 @@ fn find_whitespace_and_structurals(input: [__m256i; 2], whitespace: &mut u64, st
     let whitespace_mask = unsafe { _mm256_set1_epi8(0x18) };
     let zero = unsafe { _mm256_set1_epi8(0) };
     let category_hi32 = unsafe {
-        let lo_nibble = _mm256_shuffle_epi8(low_nibble_mask, input[0]);
+        let lo_nibble = _mm256_shuffle_epi8(low_nibble_mask, input[1]);
         let hi_nibble = _mm256_shuffle_epi8(high_nibble_mask, 
-            _mm256_and_si256(_mm256_srli_epi64(input[0], 4), _mm256_set1_epi8(0x7f))
+            _mm256_and_si256(_mm256_srli_epi64(input[1], 4), _mm256_set1_epi8(0x7f))
         );
         _mm256_and_si256(lo_nibble, hi_nibble)
     };
     let category_lo32 = unsafe {
-        let lo_nibble = _mm256_shuffle_epi8(low_nibble_mask, input[1]);
+        let lo_nibble = _mm256_shuffle_epi8(low_nibble_mask, input[0]);
         let hi_nibble = _mm256_shuffle_epi8(high_nibble_mask, 
-            _mm256_and_si256(_mm256_srli_epi64(input[1], 4), _mm256_set1_epi8(0x7f))
+            _mm256_and_si256(_mm256_srli_epi64(input[0], 4), _mm256_set1_epi8(0x7f))
         );
         _mm256_and_si256(lo_nibble, hi_nibble)
     };

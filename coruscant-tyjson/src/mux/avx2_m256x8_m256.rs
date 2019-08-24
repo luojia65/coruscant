@@ -1,28 +1,8 @@
 use std::arch::x86_64::*;
 use core::mem::transmute;
 
-fn main() {
-    let input = include_bytes!("explore.in");
-    let mut input_vec: [__m256i; 8] = unsafe { core::mem::zeroed() };
-    let mut whitespace: __m256i = unsafe { core::mem::zeroed() };
-    let mut structures: __m256i = unsafe { core::mem::zeroed() };
-    let mut prev_ov = false;
-    let mut ptr = input.as_ptr();
-    for _ in 0..16 {
-        for i in 0..8 {
-            input_vec[i] = unsafe { _mm256_loadu_si256(ptr as *const _) };
-            unsafe { ptr = ptr.add(32) };
-        }
-        let od = odd_backslash_sequences(input_vec, &mut prev_ov);
-        // print!("{} ", if prev_ov { 1 } else { 0 });
-        // print_m256(od);
-        find_whitespace_and_structurals(input_vec, &mut whitespace, &mut structures);
-        // print_m256(whitespace);
-    }
-}
-
 #[inline(always)]
-fn odd_backslash_sequences(input: [__m256i; 8], prev_ov: &mut bool) -> __m256i {
+pub fn odd_backslash_sequences(input: [__m256i; 8], prev_ov: &mut bool) -> __m256i {
     let even_bits = unsafe { _mm256_set1_epi8(transmute(0x55u8)) };
     let odd_bits = unsafe { _mm256_set1_epi8(transmute(0xAAu8)) };
     let one = unsafe { _mm256_set_epi64x(0, 0, 0, 1) };
@@ -86,7 +66,7 @@ fn odd_backslash_sequences(input: [__m256i; 8], prev_ov: &mut bool) -> __m256i {
 }
 
 #[inline(always)]
-fn find_whitespace_and_structurals(input: [__m256i; 8], whitespace: &mut __m256i, structurals: &mut __m256i) {
+pub fn find_whitespace_and_structurals(input: [__m256i; 8], whitespace: &mut __m256i, structurals: &mut __m256i) {
     let low_nibble_mask = unsafe { _mm256_setr_epi8(
         16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0, 
         16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0,
@@ -141,24 +121,3 @@ fn find_whitespace_and_structurals(input: [__m256i; 8], whitespace: &mut __m256i
         whitespace_3, whitespace_2, whitespace_1, whitespace_0,
     ) };
 }
-
-fn print_m256(input: __m256i) {
-    let arr = [0u64; 4];
-    unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }
-    println!("{:016X} {:016X} {:016X} {:016X}", arr[3], arr[2], arr[1], arr[0]);
-}
-
-// fn print_m256_bits(input: __m256i) {
-//     let arr = [0u64; 4];
-//     unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }
-//     for i in 0..4 {
-//         for j in 0..64 {
-//             if (arr[i] & (0b1 << j)) != 0 { 
-//                 print!("1")
-//             } else {
-//                 print!("-")
-//             }
-//         };
-//     }
-//     println!()
-// }

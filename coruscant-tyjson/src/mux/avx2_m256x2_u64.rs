@@ -1,27 +1,8 @@
 use std::arch::x86_64::*;
 use core::mem::transmute;
 
-fn main() {
-    let input = include_bytes!("explore.in");
-    let mut input_vec: [__m256i; 2] = unsafe { core::mem::zeroed() };
-    let mut prev_ov = 0;
-    let mut whitespace = 0;
-    let mut structurals = 0;
-    let mut ptr = input.as_ptr();
-    for _ in 0..64 {
-        input_vec[0] = unsafe { _mm256_loadu_si256(ptr as *const _) };
-        input_vec[1] = unsafe { _mm256_loadu_si256(ptr.add(32) as *const _) };
-        unsafe { ptr = ptr.add(64) };
-        let od = odd_backslash_sequences(input_vec, &mut prev_ov);
-        find_whitespace_and_structurals(input_vec, &mut whitespace, &mut structurals);
-        // print!("{} ", prev_ov);
-        // print!("{:016X} ", od);
-        println!("{:016X} ", whitespace);
-    }
-}
-
 #[inline(always)]
-fn odd_backslash_sequences(input: [__m256i; 2], prev_ov: &mut u64) -> u64 {
+pub fn odd_backslash_sequences(input: [__m256i; 2], prev_ov: &mut u64) -> u64 {
     const EVEN_BITS: u64 = 0x5555_5555_5555_5555;
     const ODD_BITS: u64 = 0xAAAA_AAAA_AAAA_AAAA;
     let mask = unsafe { _mm256_set1_epi8(b'\\' as i8) };
@@ -46,7 +27,7 @@ fn odd_backslash_sequences(input: [__m256i; 2], prev_ov: &mut u64) -> u64 {
 }
 
 #[inline(always)]
-fn find_whitespace_and_structurals(input: [__m256i; 2], whitespace: &mut u64, structurals: &mut u64) {
+pub fn find_whitespace_and_structurals(input: [__m256i; 2], whitespace: &mut u64, structurals: &mut u64) {
     let low_nibble_mask = unsafe { _mm256_setr_epi8(
         16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0, 
         16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0,
@@ -98,13 +79,6 @@ fn find_whitespace_and_structurals(input: [__m256i; 2], whitespace: &mut u64, st
 }
 
 #[inline(always)]
-fn validate_utf8(input: [__m256i; 2], prev_error: &mut __m256) {
+pub fn validate_utf8(input: [__m256i; 2], prev_error: &mut __m256) {
     
 } 
-
-fn print_m256(input: __m256i) {
-    let arr = [0u64; 4];
-    unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }
-    print!("{:016X} {:016X} {:016X} {:016X}", arr[3], arr[2], arr[1], arr[0]);
-    println!()
-}

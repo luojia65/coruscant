@@ -38,7 +38,7 @@ pub fn find_whitespace_and_structurals(input: [__m256i; 2], whitespace: &mut u64
     ) };
     let structural_mask = unsafe { _mm256_set1_epi8(0x07) };
     let whitespace_mask = unsafe { _mm256_set1_epi8(0x18) };
-    let zero = unsafe { _mm256_set1_epi8(0) };
+    
     let category_hi32 = unsafe {
         let lo_nibble = _mm256_shuffle_epi8(low_nibble_mask, input[1]);
         let hi_nibble = _mm256_shuffle_epi8(high_nibble_mask, 
@@ -55,24 +55,24 @@ pub fn find_whitespace_and_structurals(input: [__m256i; 2], whitespace: &mut u64
     };
     let structural_hi32: u32 = unsafe { 
         let category_structural = _mm256_and_si256(category_hi32, structural_mask);
-        let ans = _mm256_cmpgt_epi8(category_structural, zero);
+        let ans = _mm256_cmpgt_epi8(category_structural, _mm256_set1_epi8(0));
         transmute(_mm256_movemask_epi8(ans))
     };
     let structural_lo32: u32 = unsafe { 
         let category_structural = _mm256_and_si256(category_lo32, structural_mask);
-        let ans = _mm256_cmpgt_epi8(category_structural, zero);
+        let ans = _mm256_cmpgt_epi8(category_structural, _mm256_set1_epi8(0));
         transmute(_mm256_movemask_epi8(ans))
     };
     *structurals = structural_lo32 as u64 | ((structural_hi32 as u64) << 32);
 
     let whitespace_hi32: u32 = unsafe { 
         let category_whitespace = _mm256_and_si256(category_hi32, whitespace_mask);
-        let ans = _mm256_cmpgt_epi8(category_whitespace, zero);
+        let ans = _mm256_cmpgt_epi8(category_whitespace, _mm256_set1_epi8(0));
         transmute(_mm256_movemask_epi8(ans))
     };
     let whitespace_lo32: u32 = unsafe { 
         let category_whitespace = _mm256_and_si256(category_lo32, whitespace_mask);
-        let ans = _mm256_cmpgt_epi8(category_whitespace, zero);
+        let ans = _mm256_cmpgt_epi8(category_whitespace, _mm256_set1_epi8(0));
         transmute(_mm256_movemask_epi8(ans))
     };
     *whitespace = whitespace_lo32 as u64 | ((whitespace_hi32 as u64) << 32);

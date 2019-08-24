@@ -77,7 +77,6 @@ pub fn find_whitespace_and_structurals(input: [__m256i; 8], whitespace: &mut __m
     ) };
     let structural_mask = unsafe { _mm256_set1_epi8(0x07) };
     let whitespace_mask = unsafe { _mm256_set1_epi8(0x18) };
-    let zero = unsafe { _mm256_set1_epi8(0) };
 
     macro_rules! calc_category {
         ($index: expr, $category_name: ident, 
@@ -91,12 +90,12 @@ pub fn find_whitespace_and_structurals(input: [__m256i; 8], whitespace: &mut __m
     };
     let $structural_name: i32 = unsafe { 
         let category_structural = _mm256_and_si256($category_name, structural_mask);
-        let ans = _mm256_cmpgt_epi8(category_structural, zero);
+        let ans = _mm256_cmpgt_epi8(category_structural, _mm256_set1_epi8(0));
         transmute(_mm256_movemask_epi8(ans))
     };
     let $whitespace_name: i32 = unsafe { 
         let category_whitespace = _mm256_and_si256($category_name, whitespace_mask);
-        let ans = _mm256_cmpgt_epi8(category_whitespace, zero);
+        let ans = _mm256_cmpgt_epi8(category_whitespace, _mm256_set1_epi8(0));
         transmute(_mm256_movemask_epi8(ans))
     };
         };

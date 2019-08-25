@@ -1,3 +1,5 @@
+#![feature(asm)]
+
 pub mod de;
 pub mod error;
 pub mod mux;

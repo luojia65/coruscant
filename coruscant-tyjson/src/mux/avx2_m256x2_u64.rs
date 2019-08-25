@@ -5,11 +5,26 @@ use core::mem::transmute;
 pub fn odd_backslash_sequences(input: [__m256i; 2], prev_ov: &mut u64) -> u64 {
     const EVEN_BITS: u64 = 0x5555_5555_5555_5555;
     const ODD_BITS: u64 = 0xAAAA_AAAA_AAAA_AAAA;
-    let mask = unsafe { _mm256_set1_epi8(b'\\' as i8) };
     let backslashes = unsafe { 
-        let hi32: u32 = transmute(_mm256_movemask_epi8(_mm256_cmpeq_epi8(input[1], mask)));
-        let lo32: u32 = transmute(_mm256_movemask_epi8(_mm256_cmpeq_epi8(input[0], mask)));
-        lo32 as u64 | ((hi32 as u64) << 32)
+        let backslash_mask = br"\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\";
+        let backslashes: u64;
+        asm!("
+            vmovdqu ymm0, [r8]; # r8: &backslash_mask
+            vmovdqu ymm1, [r9]; # r9: &src[0..128]
+            vpcmpeqb ymm1, ymm1, ymm0;
+            vpmovmskb r8, ymm1; # r8: as_hi32
+            vmovdqu ymm1, [r9+20h]; 
+            vpcmpeqb ymm1, ymm1, ymm0;
+            vpmovmskb r9, ymm1; # r9: ans_lo32
+            shl r9, 20h; 
+            or r8, r9; # r8: backslashes
+            "
+            :"={r8}"(backslashes)
+            :"{r8}"(backslash_mask as *const _), "{r9}"(&input as *const _)
+            :"r9"
+            :"intel"
+        );
+        backslashes
     };
     let starts = backslashes & (!(backslashes << 1));
     let even_start_mask = EVEN_BITS ^ *prev_ov;

@@ -14,8 +14,8 @@ fn main() {
         unsafe { ptr = ptr.add(64) };
         let od = odd_backslash_sequences(input_vec, &mut prev_ov);
         find_whitespace_and_structurals(input_vec, &mut whitespace, &mut structurals);
-        // print!("{} ", prev_ov);
-        // print!("{:016X} ", od);
+        print!("{} ", prev_ov);
+        print!("{:016X} ", od);
         println!("{:016X} ", whitespace);
     }
 }
@@ -97,14 +97,14 @@ fn find_whitespace_and_structurals(input: [__m256i; 2], whitespace: &mut u64, st
     *whitespace = whitespace_lo32 as u64 | ((whitespace_hi32 as u64) << 32);
 }
 
-#[inline(always)]
-fn validate_utf8(input: [__m256i; 2], prev_error: &mut __m256) {
+// #[inline(always)]
+// fn validate_utf8(input: [__m256i; 2], prev_error: &mut __m256) {
     
-} 
+// } 
 
-fn print_m256(input: __m256i) {
-    let arr = [0u64; 4];
-    unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }
-    print!("{:016X} {:016X} {:016X} {:016X}", arr[3], arr[2], arr[1], arr[0]);
-    println!()
-}
+// fn print_m256(input: __m256i) {
+//     let arr = [0u64; 4];
+//     unsafe { _mm256_storeu_si256(&arr as *const _ as *mut __m256i, input) }
+//     print!("{:016X} {:016X} {:016X} {:016X}", arr[3], arr[2], arr[1], arr[0]);
+//     println!()
+// }

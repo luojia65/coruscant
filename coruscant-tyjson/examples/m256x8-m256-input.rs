@@ -14,10 +14,10 @@ fn main() {
             unsafe { ptr = ptr.add(32) };
         }
         let od = odd_backslash_sequences(input_vec, &mut prev_ov);
-        // print!("{} ", if prev_ov { 1 } else { 0 });
-        // print_m256(od);
+        print!("{} ", if prev_ov { 1 } else { 0 });
+        print_m256(od);
         find_whitespace_and_structurals(input_vec, &mut whitespace, &mut structures);
-        // print_m256(whitespace);
+        print_m256(whitespace);
     }
 }
 
